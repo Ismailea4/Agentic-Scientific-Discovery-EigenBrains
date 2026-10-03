@@ -21,6 +21,8 @@ FEATURE_SETS: dict[str, tuple[str, ...]] = {
     "fitness+entropy": FITNESS + ENTROPY,
     "fitness+dispersion": FITNESS + DISPERSION,
     "fitness+spread": FITNESS + FITNESS_SPREAD,
+    # nested contrast: does entropy add anything once genotypic dispersion is known?
+    "fitness+dispersion+entropy": FITNESS + DISPERSION + ENTROPY,
     "entropy_only": ENTROPY,
     "full": FITNESS + ENTROPY + DISPERSION + FITNESS_SPREAD,
 }
