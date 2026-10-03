@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "status": "DISCOVERY_COMPLETE",
+  "tested_at": "2026-10-03",
+  "credential_count": 5,
+  "credentials": [
+    {
+      "provider": "openai",
+      "credential_source": "environment",
+      "auth_status": "VALID_AUTH",
+      "inference_status": "RATE_LIMITED_OR_QUOTA_EXHAUSTED",
+      "accessible_model_count": 76,
+      "probe_model": "gpt-5.4-nano",
+      "validation_latency_ms": 2010.9,
+      "notes": "HTTP 429 is not classified as an invalid credential. No retry was attempted."
+    },
+    {
+      "provider": "anthropic",
+      "credential_source": "environment",
+      "auth_status": "VALID_AUTH",
+      "inference_status": "VALID_INFERENCE",
+      "accessible_model_count": 13,
+      "probe_model": "claude-haiku-4-5-20251001",
+      "validation_latency_ms": 857.7,
+      "input_tokens": 12,
+      "output_tokens": 5
+    },
+    {
+      "provider": "gemini",
+      "credential_source": "environment",
+      "auth_status": "VALID_AUTH",
+      "inference_status": "VALID_INFERENCE",
+      "accessible_model_count": 38,
+      "probe_model": "gemini-3.5-flash-lite",
+      "validation_latency_ms": 1125.7,
+      "input_tokens": 5,
+      "output_tokens": 1
+    },
+    {
+      "provider": "openrouter",
+      "credential_source": "environment",
+      "auth_status": "VALID_AUTH",
+      "inference_status": "VALID_INFERENCE",
+      "accessible_model_count": 466,
+      "probe_model": "openrouter/free",
+      "resolved_model": "apodex/apodex-1.1-mini:free",
+      "validation_latency_ms": 1288.8,
+      "input_tokens": 15,
+      "output_tokens": 8
+    },
+    {
+      "provider": "groq",
+      "credential_source": "environment",
+      "auth_status": "VALID_AUTH",
+      "inference_status": "VALID_INFERENCE",
+      "accessible_model_count": 11,
+      "probe_model": "openai/gpt-oss-20b",
+      "validation_latency_ms": 705.4,
+      "input_tokens": 76,
+      "output_tokens": 8
+    }
+  ]
+}

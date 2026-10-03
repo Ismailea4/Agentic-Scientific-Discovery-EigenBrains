@@ -1,0 +1,320 @@
+{
+  "budget_proposal": {
+    "authorization": "NOT_APPROVED",
+    "conditional_additions": {
+      "claude_72_cases_if_resolved": {
+        "dollar_ceiling": 0.331776,
+        "provider_requests": 72
+      },
+      "gemini_72_cases_if_stable": {
+        "dollar_ceiling": 0.0681984,
+        "provider_requests": 72
+      }
+    },
+    "core_total": {
+      "dollar_ceiling": 0.21330048000000001,
+      "inference_calls": 269,
+      "provider_requests": 270
+    },
+    "currency": "USD",
+    "phases": {
+      "compact_provider_backed_verifier_confirmation": {
+        "dollar_ceiling": 0.023961600000000003,
+        "inference_calls": 24,
+        "note": "At most 12 Qwen and 12 GPT-OSS verifier calls after policies are frozen.",
+        "provider_requests": 24
+      },
+      "core_72_case_single_model_baseline": {
+        "dollar_ceiling": 0.16293888,
+        "inference_calls": 216,
+        "provider_requests": 216
+      },
+      "provider_diagnosis": {
+        "dollar_ceiling": 0.0024384,
+        "inference_calls": 5,
+        "note": "Includes one unpriced catalogue request and five capped inference calls.",
+        "provider_requests": 6
+      },
+      "s0_to_s4_offline_replay": {
+        "dollar_ceiling": 0.0,
+        "inference_calls": 0,
+        "note": "Reuses paired single-model observations; no model outputs are fabricated.",
+        "provider_requests": 0
+      },
+      "targeted_sequential_racing": {
+        "dollar_ceiling": 0.023961600000000003,
+        "inference_calls": 24,
+        "note": "Not automatic; release only for unresolved frontier or rescue questions.",
+        "provider_requests": 24
+      }
+    },
+    "pricing_basis": "checked pricing_v0; 1024 input/256 output cap except 256/64 diagnostics",
+    "recommended_initial_approval": {
+      "dollar_ceiling": 0.18933888000000001,
+      "excludes_sequential_racing": true,
+      "inference_calls": 245,
+      "phases": [
+        "provider_diagnosis",
+        "core_72_case_single_model_baseline",
+        "s0_to_s4_offline_replay",
+        "compact_provider_backed_verifier_confirmation"
+      ],
+      "provider_requests": 246
+    }
+  },
+  "corpus": {
+    "case_count": 72,
+    "sha256": "eefd0858298ef94a56a3475e4479aa43cfb98fbfd23104f7f5e8fcee39891a7b",
+    "version": "pre-challenge-architecture-baseline-v0"
+  },
+  "execution_authorization": {
+    "approved_at": "2026-10-03T05:03:13.926688+00:00",
+    "approved_phases": [
+      "provider_diagnosis",
+      "core_72_case_single_model_baseline",
+      "s0_to_s4_offline_replay",
+      "compact_provider_backed_verifier_confirmation"
+    ],
+    "explicitly_excluded": [
+      "sequential_racing",
+      "full_claude_baseline",
+      "full_gemini_baseline",
+      "exhaustive_A0_A6",
+      "additional_ablations",
+      "UI_work"
+    ],
+    "max_benchmark_spend_usd": 0.2,
+    "max_concurrency": 1,
+    "max_provider_requests": 246,
+    "max_total_inference_calls": 245
+  },
+  "immutable_after_execution_starts": true,
+  "models": {
+    "conditional": [
+      {
+        "admission": "diagnostic calls succeed and the staged development run remains operationally stable",
+        "model": "gemini-3.5-flash-lite",
+        "provider": "gemini"
+      },
+      {
+        "admission": "catalogue/model identifier is confirmed and candidate inference succeeds",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic"
+      }
+    ],
+    "core": [
+      {
+        "model": "openai/gpt-oss-20b",
+        "provider": "groq"
+      },
+      {
+        "model": "qwen/qwen3.8-27b",
+        "provider": "groq"
+      },
+      {
+        "model": "deepseek/deepseek-v4.1-flash",
+        "provider": "openrouter"
+      }
+    ]
+  },
+  "observations": {
+    "completed_at": "2026-10-03T05:14:00.032779+00:00",
+    "execution": {
+      "actual_estimated_spend_usd": 0.00941611,
+      "calls_per_model": {
+        "claude-haiku-4-5-20251001": 1,
+        "claude-sonnet-5-5": 1,
+        "deepseek/deepseek-v4.1-flash": 72,
+        "gemini-3.5-flash-lite": 1,
+        "openai/gpt-oss-20b": 79,
+        "qwen/qwen3.8-27b": 79
+      },
+      "inference_calls": 233,
+      "limits": {
+        "max_benchmark_spend_usd": 0.2,
+        "max_calls_per_model": null,
+        "max_concurrency": 1,
+        "max_provider_requests": 246,
+        "max_total_calls": 245
+      },
+      "provider_requests": 233,
+      "reserved_spend_usd": 0.1788812800000001,
+      "stopped_after_authorized_phases": true
+    },
+    "note": "Frozen after the approved phases; no automatic continuation is permitted.",
+    "raw_observation_hashes": [
+      {
+        "path": "benchmark/artifacts/baseline_v0/provider_diagnosis.jsonl",
+        "sha256": "fb5e7266445a3ee2f378f8eee59bbc5a3dc8f70551df64a7f05f438015096ff3"
+      },
+      {
+        "path": "benchmark/artifacts/baseline_v0/raw_single_model_runs.jsonl",
+        "sha256": "39a42a8f57c07d888454181962bcf55717ea4ee0511d0de96a0fd2a58ea931d0"
+      },
+      {
+        "path": "benchmark/artifacts/baseline_v0/offline_replay_dev_tuning.jsonl",
+        "sha256": "d7912203877ed103e10f6a858cc62f2e6e9b811159d31bac0a17e709c7945d85"
+      },
+      {
+        "path": "benchmark/artifacts/baseline_v0/offline_replay_held_out.jsonl",
+        "sha256": "afa615642f7e7ddc2be9d50cfc1c03bf19d84a9f515844e300a8b323b26ca27f"
+      },
+      {
+        "path": "benchmark/artifacts/baseline_v0/provider_backed_verifier_held_out.jsonl",
+        "sha256": "7f8ac5a01e0486f1b5ca3800f8d198e958ab34298dfd55ce7b4252f82e6bbbf4"
+      },
+      {
+        "path": "benchmark/artifacts/baseline_v0/frozen_gate_configuration.json",
+        "sha256": "343c76f21b462643542a607e72202c043d0e27eea7714b7ba69cadd9889f893f"
+      },
+      {
+        "path": "benchmark/artifacts/baseline_v0/baseline_v0_summary.json",
+        "sha256": "321da26401839f87c0033055b832d16cc904f98e36d85460be83701f55bbedb5"
+      },
+      {
+        "path": "benchmark/artifacts/baseline_v0/weak_priors.json",
+        "sha256": "c1743826c45fe6fad2dca89beb3b72cd354dc4cd7c5d0bb976118950a10c6f95"
+      }
+    ],
+    "status": "FROZEN_COMPLETE"
+  },
+  "policies": {
+    "definitions": [
+      {
+        "escalation_mode": "never",
+        "escalation_signals": [],
+        "first_model": "groq/openai/gpt-oss-20b",
+        "id": "S0",
+        "name": "GPT-OSS only",
+        "reconciliation_rule": "first_answer",
+        "replayable_from_paired_single_model_runs": true,
+        "second_model": null
+      },
+      {
+        "escalation_mode": "never",
+        "escalation_signals": [],
+        "first_model": "groq/qwen/qwen3.8-27b",
+        "id": "S1",
+        "name": "Qwen only",
+        "reconciliation_rule": "first_answer",
+        "replayable_from_paired_single_model_runs": true,
+        "second_model": null
+      },
+      {
+        "escalation_mode": "always",
+        "escalation_signals": [],
+        "first_model": "groq/qwen/qwen3.8-27b",
+        "id": "S2",
+        "name": "Always GPT-OSS + Qwen",
+        "reconciliation_rule": "canonical agreement wins; otherwise choose the sole schema/constraint-valid answer; if both remain valid and disagree, high-risk cases return INSUFFICIENT_EVIDENCE and lower-risk cases use the task-family owner frozen on development/tuning data",
+        "replayable_from_paired_single_model_runs": true,
+        "second_model": "groq/openai/gpt-oss-20b"
+      },
+      {
+        "escalation_mode": "conditional",
+        "escalation_signals": [
+          "schema_or_constraint_failure",
+          "explicit_abstention",
+          "task_risk_level",
+          "historical_task_family_error_ucb",
+          "task_family"
+        ],
+        "first_model": "groq/qwen/qwen3.8-27b",
+        "id": "S3",
+        "name": "Qwen then selective GPT-OSS",
+        "reconciliation_rule": "canonical agreement wins; otherwise choose the sole schema/constraint-valid answer; if both remain valid and disagree, high-risk cases return INSUFFICIENT_EVIDENCE and lower-risk cases use the task-family owner frozen on development/tuning data",
+        "replayable_from_paired_single_model_runs": true,
+        "second_model": "groq/openai/gpt-oss-20b"
+      },
+      {
+        "escalation_mode": "conditional",
+        "escalation_signals": [
+          "schema_or_constraint_failure",
+          "explicit_abstention",
+          "task_risk_level",
+          "historical_task_family_error_ucb",
+          "task_family"
+        ],
+        "first_model": "groq/openai/gpt-oss-20b",
+        "id": "S4",
+        "name": "GPT-OSS then selective Qwen",
+        "reconciliation_rule": "canonical agreement wins; otherwise choose the sole schema/constraint-valid answer; if both remain valid and disagree, high-risk cases return INSUFFICIENT_EVIDENCE and lower-risk cases use the task-family owner frozen on development/tuning data",
+        "replayable_from_paired_single_model_runs": true,
+        "second_model": "groq/qwen/qwen3.8-27b"
+      }
+    ],
+    "final_evaluation_split": "held_out",
+    "gate": {
+      "escalate_high_risk": true,
+      "fit_splits": [
+        "dev",
+        "tuning"
+      ],
+      "historical_error_ucb_threshold": 0.5,
+      "task_owner_tie_break": "qwen"
+    },
+    "sha256": "33f30c710e87eaa7ccdf3d4c57d4438ebbf7c78dcffcda9e9f31408b753da0f6",
+    "threshold_fit_splits": [
+      "dev",
+      "tuning"
+    ],
+    "version": "S0-S4-v0"
+  },
+  "prompts": {
+    "solver": {
+      "max_output_tokens": 256,
+      "sha256": "eb30269eb8907161f93a7011fea87497d451a5e3a6707b51e893ed10fed5c807",
+      "system": "Answer the objective benchmark item. Return only the requested answer, with no explanation or markdown.",
+      "temperature": 0
+    },
+    "verifier": {
+      "max_output_tokens": 256,
+      "sha256": "b27395c1d3fd421bf637690ada1e8d34863804df91dee130311998c6d4bf85ae",
+      "system": "Independently verify the proposed answer against the task. Return only the corrected answer in the task's requested format; do not explain or mention the proposal.",
+      "temperature": 0
+    }
+  },
+  "protocol_sha256": "727d6cc0067151a5f4ce9f788ef8669826e3b650a037f8392d6aabf2c20318ed",
+  "scoring": {
+    "secondary_metric": "primary_v0",
+    "sha256": "af7433d246b042ed875295139698cf79ab7d802234b076bae9548999fc78c54d",
+    "specification": {
+      "base": "primary_v0_casefolded_exact_match",
+      "critique_aliases": {
+        "causal_inference": [
+          "causal inference",
+          "causal_inference",
+          "correlation does not imply causation",
+          "false cause"
+        ],
+        "overgeneralization": [
+          "hasty generalization",
+          "overgeneralization"
+        ]
+      },
+      "json": "parsed structural exact equality; malformed JSON fails",
+      "normalizations": [
+        "strip_outer_whitespace",
+        "unicode_casefold",
+        "strip_trailing_sentence_punctuation",
+        "planning_comma_whitespace"
+      ],
+      "scope": "Only the equivalences documented before Baseline v0 execution.",
+      "version": "SCORING_V1"
+    },
+    "version": "SCORING_V1"
+  },
+  "statistics": {
+    "bootstrap_resamples": 2000,
+    "confidence_level": 0.95,
+    "covariance_shrinkage_intensity": 0.25,
+    "failure_threshold": 0.5,
+    "maximum_prior_strength": 5.0,
+    "minimum_tail_observations": 5,
+    "prior_strength": 4.0,
+    "seed": 0,
+    "severe_failure_threshold": 0.2
+  },
+  "status": "FROZEN_COMPLETE",
+  "version": "pre-challenge-baseline-v0-protocol"
+}

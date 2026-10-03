@@ -1,0 +1,50 @@
+{
+  "escalate_high_risk": true,
+  "escalate_task_families": [],
+  "fitted_splits": [
+    "dev",
+    "tuning"
+  ],
+  "frozen_at": "2026-10-03T05:11:58.878208+00:00",
+  "held_out_observations_used": 0,
+  "historical_error_ucb_threshold": 0.5,
+  "historical_task_family_error_ucb": {
+    "classification": 0.43448246478317465,
+    "code_understanding_debugging": 1.0,
+    "critique": 0.9637758913675698,
+    "evidence_verification": 1.0,
+    "logical_reasoning": 0.43448246478317465,
+    "mathematical_reasoning": 0.43448246478317465,
+    "numerical_reasoning": 0.43448246478317465,
+    "planning": 0.43448246478317465,
+    "structured_extraction": 0.43448246478317465,
+    "synthesis": 0.9637758913675698,
+    "tool_use_reasoning": 1.0,
+    "uncertainty_abstention": 0.9637758913675698
+  },
+  "sha256": "d07346d629e064b4240b2fd73aea5d8d95400e02b2d7f4c749452664878896f7",
+  "signals": [
+    "schema_or_constraint_failure",
+    "explicit_abstention",
+    "task_risk_level",
+    "historical_task_family_error_ucb",
+    "task_family"
+  ],
+  "source_case_count": 60,
+  "source_observation_count": 180,
+  "task_family_owner": {
+    "classification": "groq/qwen/qwen3.8-27b",
+    "code_understanding_debugging": "groq/openai/gpt-oss-20b",
+    "critique": "groq/qwen/qwen3.8-27b",
+    "evidence_verification": "groq/openai/gpt-oss-20b",
+    "logical_reasoning": "groq/qwen/qwen3.8-27b",
+    "mathematical_reasoning": "groq/qwen/qwen3.8-27b",
+    "numerical_reasoning": "groq/qwen/qwen3.8-27b",
+    "planning": "groq/qwen/qwen3.8-27b",
+    "structured_extraction": "groq/qwen/qwen3.8-27b",
+    "synthesis": "groq/qwen/qwen3.8-27b",
+    "tool_use_reasoning": "groq/qwen/qwen3.8-27b",
+    "uncertainty_abstention": "groq/qwen/qwen3.8-27b"
+  },
+  "uses_ground_truth": false
+}

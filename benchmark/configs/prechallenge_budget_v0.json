@@ -1,0 +1,63 @@
+{
+  "authorization": "NOT_APPROVED",
+  "conditional_additions": {
+    "claude_72_cases_if_resolved": {
+      "dollar_ceiling": 0.331776,
+      "provider_requests": 72
+    },
+    "gemini_72_cases_if_stable": {
+      "dollar_ceiling": 0.0681984,
+      "provider_requests": 72
+    }
+  },
+  "core_total": {
+    "dollar_ceiling": 0.21330048000000001,
+    "inference_calls": 269,
+    "provider_requests": 270
+  },
+  "currency": "USD",
+  "phases": {
+    "compact_provider_backed_verifier_confirmation": {
+      "dollar_ceiling": 0.023961600000000003,
+      "inference_calls": 24,
+      "note": "At most 12 Qwen and 12 GPT-OSS verifier calls after policies are frozen.",
+      "provider_requests": 24
+    },
+    "core_72_case_single_model_baseline": {
+      "dollar_ceiling": 0.16293888,
+      "inference_calls": 216,
+      "provider_requests": 216
+    },
+    "provider_diagnosis": {
+      "dollar_ceiling": 0.0024384,
+      "inference_calls": 5,
+      "note": "Includes one unpriced catalogue request and five capped inference calls.",
+      "provider_requests": 6
+    },
+    "s0_to_s4_offline_replay": {
+      "dollar_ceiling": 0.0,
+      "inference_calls": 0,
+      "note": "Reuses paired single-model observations; no model outputs are fabricated.",
+      "provider_requests": 0
+    },
+    "targeted_sequential_racing": {
+      "dollar_ceiling": 0.023961600000000003,
+      "inference_calls": 24,
+      "note": "Not automatic; release only for unresolved frontier or rescue questions.",
+      "provider_requests": 24
+    }
+  },
+  "pricing_basis": "checked pricing_v0; 1024 input/256 output cap except 256/64 diagnostics",
+  "recommended_initial_approval": {
+    "dollar_ceiling": 0.18933888000000001,
+    "excludes_sequential_racing": true,
+    "inference_calls": 245,
+    "phases": [
+      "provider_diagnosis",
+      "core_72_case_single_model_baseline",
+      "s0_to_s4_offline_replay",
+      "compact_provider_backed_verifier_confirmation"
+    ],
+    "provider_requests": 246
+  }
+}

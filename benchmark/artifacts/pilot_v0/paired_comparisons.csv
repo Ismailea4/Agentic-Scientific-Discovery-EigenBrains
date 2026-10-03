@@ -1,0 +1,11 @@
+left,right,quality_difference_left_minus_right,bootstrap_lower,bootstrap_upper,mcnemar_left_only_correct,mcnemar_right_only_correct,mcnemar_p_value,resolved_at_95_percent
+anthropic/claude-sonnet-5-5,gemini/gemini-3.5-flash-lite,-0.5416666666666666,-0.75,-0.3333333333333333,0,13,0.000244140625,True
+anthropic/claude-sonnet-5-5,groq/openai/gpt-oss-20b,-0.8333333333333334,-0.9583333333333334,-0.6666666666666666,0,20,1.9073486328125e-06,True
+anthropic/claude-sonnet-5-5,groq/qwen/qwen3.8-27b,-0.7916666666666666,-0.9583333333333334,-0.625,0,19,3.814697265625e-06,True
+anthropic/claude-sonnet-5-5,openrouter/deepseek/deepseek-v4.1-flash,-0.7916666666666666,-0.9583333333333334,-0.625,0,19,3.814697265625e-06,True
+gemini/gemini-3.5-flash-lite,groq/openai/gpt-oss-20b,-0.2916666666666667,-0.5,-0.125,0,7,0.015625,True
+gemini/gemini-3.5-flash-lite,groq/qwen/qwen3.8-27b,-0.25,-0.4166666666666667,-0.08333333333333333,0,6,0.03125,True
+gemini/gemini-3.5-flash-lite,openrouter/deepseek/deepseek-v4.1-flash,-0.25,-0.4166666666666667,-0.08333333333333333,0,6,0.03125,True
+groq/openai/gpt-oss-20b,groq/qwen/qwen3.8-27b,0.041666666666666664,-0.08333333333333333,0.16666666666666666,2,1,1.0,False
+groq/openai/gpt-oss-20b,openrouter/deepseek/deepseek-v4.1-flash,0.041666666666666664,0.0,0.125,1,0,1.0,False
+groq/qwen/qwen3.8-27b,openrouter/deepseek/deepseek-v4.1-flash,0.0,-0.125,0.125,1,1,1.0,False

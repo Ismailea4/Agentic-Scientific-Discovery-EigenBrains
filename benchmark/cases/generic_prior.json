@@ -1,0 +1,150 @@
+{
+  "dataset_version": "generic-prior-1",
+  "description": "Objective generic agent-system cases; these are inputs, not performance results.",
+  "cases": [
+    {
+      "id": "dev-structured-extraction-01",
+      "task_type": "structured_extraction",
+      "difficulty": "easy",
+      "input": "Return only JSON with incident_id and severity from: Incident R-17 has severity high.",
+      "expected_answer": {"incident_id": "R-17", "severity": "high"},
+      "evaluator": "json_exact",
+      "risk_level": "low",
+      "required_capabilities": [],
+      "metadata": {"output_format": "compact_json"},
+      "split": "dev"
+    },
+    {
+      "id": "dev-classification-01",
+      "task_type": "classification",
+      "difficulty": "easy",
+      "input": "Return allow or deny: a requested capability is absent from the allow-list.",
+      "expected_answer": "deny",
+      "evaluator": "exact_match",
+      "risk_level": "high",
+      "required_capabilities": [],
+      "metadata": {},
+      "split": "dev"
+    },
+    {
+      "id": "dev-numerical-01",
+      "task_type": "numerical_reasoning",
+      "difficulty": "easy",
+      "input": "A pilot used 2400 input and 600 output tokens over 3 equal calls. Return total tokens per call as one integer.",
+      "expected_answer": "1000",
+      "evaluator": "exact_match",
+      "risk_level": "low",
+      "required_capabilities": [],
+      "metadata": {},
+      "split": "dev"
+    },
+    {
+      "id": "dev-mathematical-01",
+      "task_type": "mathematical_reasoning",
+      "difficulty": "medium",
+      "input": "Solve 3x + 7 = 28. Return only x.",
+      "expected_answer": "7",
+      "evaluator": "exact_match",
+      "risk_level": "low",
+      "required_capabilities": [],
+      "metadata": {},
+      "split": "dev"
+    },
+    {
+      "id": "dev-logical-01",
+      "task_type": "logical_reasoning",
+      "difficulty": "medium",
+      "input": "All verified outputs have evidence. This output has no evidence. Is it verified? Return yes, no, or undetermined.",
+      "expected_answer": "no",
+      "evaluator": "exact_match",
+      "risk_level": "medium",
+      "required_capabilities": [],
+      "metadata": {},
+      "split": "dev"
+    },
+    {
+      "id": "dev-evidence-01",
+      "task_type": "evidence_verification",
+      "difficulty": "medium",
+      "input": "The evidence contains no latency measurement. Is 'latency is below 200 ms' supported? Return supported or insufficient_evidence.",
+      "expected_answer": "insufficient_evidence",
+      "evaluator": "exact_match",
+      "risk_level": "high",
+      "required_capabilities": [],
+      "metadata": {"should_abstain": true},
+      "split": "dev"
+    },
+    {
+      "id": "tuning-critique-01",
+      "task_type": "critique",
+      "difficulty": "medium",
+      "input": "Name the flaw: Configuration A is best everywhere because it won on one extraction case. Return only overgeneralization.",
+      "expected_answer": "overgeneralization",
+      "evaluator": "exact_match",
+      "risk_level": "medium",
+      "required_capabilities": [],
+      "metadata": {},
+      "split": "tuning"
+    },
+    {
+      "id": "tuning-planning-01",
+      "task_type": "planning",
+      "difficulty": "medium",
+      "input": "Order these benchmark stages using comma-separated labels: full, pilot, projection.",
+      "expected_answer": "pilot,projection,full",
+      "evaluator": "exact_match",
+      "risk_level": "medium",
+      "required_capabilities": [],
+      "metadata": {},
+      "split": "tuning"
+    },
+    {
+      "id": "tuning-synthesis-01",
+      "task_type": "synthesis",
+      "difficulty": "medium",
+      "input": "Solver A says allow; solver B says deny; policy says missing mandatory capability. Return only the policy-consistent decision.",
+      "expected_answer": "deny",
+      "evaluator": "exact_match",
+      "risk_level": "high",
+      "required_capabilities": [],
+      "metadata": {},
+      "split": "tuning"
+    },
+    {
+      "id": "held-tool-use-01",
+      "task_type": "tool_use_reasoning",
+      "difficulty": "easy",
+      "input": "Choose calculator or web_search for exact multiplication of two supplied integers. Return only the tool name.",
+      "expected_answer": "calculator",
+      "evaluator": "exact_match",
+      "risk_level": "low",
+      "required_capabilities": ["calculator"],
+      "metadata": {},
+      "split": "held_out"
+    },
+    {
+      "id": "held-code-debug-01",
+      "task_type": "code_understanding_debugging",
+      "difficulty": "medium",
+      "input": "Python: values=[1,2,3]; print(values[3]). Return only the exception class.",
+      "expected_answer": "IndexError",
+      "evaluator": "exact_match",
+      "risk_level": "low",
+      "required_capabilities": [],
+      "metadata": {},
+      "split": "held_out"
+    },
+    {
+      "id": "held-abstention-01",
+      "task_type": "uncertainty_abstention",
+      "difficulty": "hard",
+      "input": "No evidence or source is provided. State the measured failure rate of model X. Return only INSUFFICIENT_EVIDENCE.",
+      "expected_answer": "INSUFFICIENT_EVIDENCE",
+      "evaluator": "exact_match",
+      "risk_level": "high",
+      "required_capabilities": [],
+      "metadata": {"should_abstain": true},
+      "split": "held_out"
+    }
+  ]
+}

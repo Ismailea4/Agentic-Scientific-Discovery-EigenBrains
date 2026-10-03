@@ -1,0 +1,261 @@
+{
+  "loss_matrix": {
+    "correlation": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        1.0,
+        0.4698714938993647,
+        0.32494624495722557,
+        0.3118315179038567
+      ],
+      [
+        null,
+        0.4698714938993647,
+        1.0,
+        0.6915640748081245,
+        0.7977240352174655
+      ],
+      [
+        null,
+        0.32494624495722557,
+        0.6915640748081245,
+        1.0,
+        0.5516772843673705
+      ],
+      [
+        null,
+        0.3118315179038567,
+        0.7977240352174655,
+        0.5516772843673705,
+        1.0
+      ]
+    ],
+    "covariance": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.2065972222222222,
+        0.05902777777777777,
+        0.02951388888888889,
+        0.046875
+      ],
+      [
+        0.0,
+        0.05902777777777777,
+        0.07638888888888888,
+        0.03819444444444444,
+        0.07291666666666666
+      ],
+      [
+        0.0,
+        0.02951388888888889,
+        0.03819444444444444,
+        0.03993055555555556,
+        0.036458333333333336
+      ],
+      [
+        0.0,
+        0.046875,
+        0.07291666666666666,
+        0.036458333333333336,
+        0.109375
+      ]
+    ],
+    "expected_loss": {
+      "anthropic/claude-sonnet-5-5": 1.0,
+      "gemini/gemini-3.5-flash-lite": 0.2916666666666667,
+      "groq/openai/gpt-oss-20b": 0.08333333333333333,
+      "groq/qwen/qwen3.8-27b": 0.041666666666666664,
+      "openrouter/deepseek/deepseek-v4.1-flash": 0.125
+    },
+    "labels": [
+      "anthropic/claude-sonnet-5-5",
+      "gemini/gemini-3.5-flash-lite",
+      "groq/openai/gpt-oss-20b",
+      "groq/qwen/qwen3.8-27b",
+      "openrouter/deepseek/deepseek-v4.1-flash"
+    ],
+    "loss_variance": {
+      "anthropic/claude-sonnet-5-5": 0.0,
+      "gemini/gemini-3.5-flash-lite": 0.2065972222222222,
+      "groq/openai/gpt-oss-20b": 0.07638888888888888,
+      "groq/qwen/qwen3.8-27b": 0.03993055555555556,
+      "openrouter/deepseek/deepseek-v4.1-flash": 0.109375
+    }
+  },
+  "model_statistics": [
+    {
+      "adjustments": 0,
+      "cases": 24,
+      "model": "anthropic/claude-sonnet-5-5",
+      "primary_passed": 0,
+      "sensitivity_passed": 0
+    },
+    {
+      "adjustments": 4,
+      "cases": 24,
+      "model": "gemini/gemini-3.5-flash-lite",
+      "primary_passed": 13,
+      "sensitivity_passed": 17
+    },
+    {
+      "adjustments": 2,
+      "cases": 24,
+      "model": "groq/openai/gpt-oss-20b",
+      "primary_passed": 20,
+      "sensitivity_passed": 22
+    },
+    {
+      "adjustments": 4,
+      "cases": 24,
+      "model": "groq/qwen/qwen3.8-27b",
+      "primary_passed": 19,
+      "sensitivity_passed": 23
+    },
+    {
+      "adjustments": 2,
+      "cases": 24,
+      "model": "openrouter/deepseek/deepseek-v4.1-flash",
+      "primary_passed": 19,
+      "sensitivity_passed": 21
+    }
+  ],
+  "pairwise_diagnostics": [
+    {
+      "correlation": null,
+      "covariance": 0.0,
+      "disagreement_rate": 0.7083333333333334,
+      "failure_overlap": 0.2916666666666667,
+      "jaccard_failure_similarity": 0.2916666666666667,
+      "left": "anthropic/claude-sonnet-5-5",
+      "p_left_fails_given_right_fails": 1.0,
+      "p_right_fails_given_left_fails": 0.2916666666666667,
+      "right": "gemini/gemini-3.5-flash-lite"
+    },
+    {
+      "correlation": null,
+      "covariance": 0.0,
+      "disagreement_rate": 0.9166666666666666,
+      "failure_overlap": 0.08333333333333333,
+      "jaccard_failure_similarity": 0.08333333333333333,
+      "left": "anthropic/claude-sonnet-5-5",
+      "p_left_fails_given_right_fails": 1.0,
+      "p_right_fails_given_left_fails": 0.08333333333333333,
+      "right": "groq/openai/gpt-oss-20b"
+    },
+    {
+      "correlation": null,
+      "covariance": 0.0,
+      "disagreement_rate": 0.9583333333333334,
+      "failure_overlap": 0.041666666666666664,
+      "jaccard_failure_similarity": 0.041666666666666664,
+      "left": "anthropic/claude-sonnet-5-5",
+      "p_left_fails_given_right_fails": 1.0,
+      "p_right_fails_given_left_fails": 0.041666666666666664,
+      "right": "groq/qwen/qwen3.8-27b"
+    },
+    {
+      "correlation": null,
+      "covariance": 0.0,
+      "disagreement_rate": 0.875,
+      "failure_overlap": 0.125,
+      "jaccard_failure_similarity": 0.125,
+      "left": "anthropic/claude-sonnet-5-5",
+      "p_left_fails_given_right_fails": 1.0,
+      "p_right_fails_given_left_fails": 0.125,
+      "right": "openrouter/deepseek/deepseek-v4.1-flash"
+    },
+    {
+      "correlation": 0.4698714938993647,
+      "covariance": 0.05902777777777777,
+      "disagreement_rate": 0.20833333333333334,
+      "failure_overlap": 0.08333333333333333,
+      "jaccard_failure_similarity": 0.2857142857142857,
+      "left": "gemini/gemini-3.5-flash-lite",
+      "p_left_fails_given_right_fails": 1.0,
+      "p_right_fails_given_left_fails": 0.2857142857142857,
+      "right": "groq/openai/gpt-oss-20b"
+    },
+    {
+      "correlation": 0.32494624495722557,
+      "covariance": 0.02951388888888889,
+      "disagreement_rate": 0.25,
+      "failure_overlap": 0.041666666666666664,
+      "jaccard_failure_similarity": 0.14285714285714285,
+      "left": "gemini/gemini-3.5-flash-lite",
+      "p_left_fails_given_right_fails": 1.0,
+      "p_right_fails_given_left_fails": 0.14285714285714285,
+      "right": "groq/qwen/qwen3.8-27b"
+    },
+    {
+      "correlation": 0.3118315179038567,
+      "covariance": 0.046875,
+      "disagreement_rate": 0.25,
+      "failure_overlap": 0.08333333333333333,
+      "jaccard_failure_similarity": 0.25,
+      "left": "gemini/gemini-3.5-flash-lite",
+      "p_left_fails_given_right_fails": 0.6666666666666666,
+      "p_right_fails_given_left_fails": 0.2857142857142857,
+      "right": "openrouter/deepseek/deepseek-v4.1-flash"
+    },
+    {
+      "correlation": 0.6915640748081245,
+      "covariance": 0.03819444444444444,
+      "disagreement_rate": 0.041666666666666664,
+      "failure_overlap": 0.041666666666666664,
+      "jaccard_failure_similarity": 0.5,
+      "left": "groq/openai/gpt-oss-20b",
+      "p_left_fails_given_right_fails": 1.0,
+      "p_right_fails_given_left_fails": 0.5,
+      "right": "groq/qwen/qwen3.8-27b"
+    },
+    {
+      "correlation": 0.7977240352174655,
+      "covariance": 0.07291666666666666,
+      "disagreement_rate": 0.041666666666666664,
+      "failure_overlap": 0.08333333333333333,
+      "jaccard_failure_similarity": 0.6666666666666666,
+      "left": "groq/openai/gpt-oss-20b",
+      "p_left_fails_given_right_fails": 0.6666666666666666,
+      "p_right_fails_given_left_fails": 1.0,
+      "right": "openrouter/deepseek/deepseek-v4.1-flash"
+    },
+    {
+      "correlation": 0.5516772843673705,
+      "covariance": 0.036458333333333336,
+      "disagreement_rate": 0.08333333333333333,
+      "failure_overlap": 0.041666666666666664,
+      "jaccard_failure_similarity": 0.3333333333333333,
+      "left": "groq/qwen/qwen3.8-27b",
+      "p_left_fails_given_right_fails": 0.3333333333333333,
+      "p_right_fails_given_left_fails": 1.0,
+      "right": "openrouter/deepseek/deepseek-v4.1-flash"
+    }
+  ],
+  "role_sensitivity": {
+    "best_solver_candidate": "groq/qwen/qwen3.8-27b",
+    "most_complementary_pair": [
+      "groq/qwen/qwen3.8-27b",
+      "openrouter/deepseek/deepseek-v4.1-flash"
+    ],
+    "most_redundant_pair": [
+      "groq/openai/gpt-oss-20b",
+      "openrouter/deepseek/deepseek-v4.1-flash"
+    ]
+  },
+  "scope": "Case-specific critique taxonomy synonyms and whitespace around planning-list commas only; provider failures and other wrong answers remain failures.",
+  "status": "post_hoc_audit_not_primary"
+}

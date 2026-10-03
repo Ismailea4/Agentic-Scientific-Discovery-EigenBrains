@@ -1,0 +1,25 @@
+{
+  "a0_to_a6_upper_bound": {
+    "calls": 1368,
+    "dollar_ceiling": 6.303744
+  },
+  "ablations_three_frontier_candidates_upper_bound": {
+    "assumption": "three frontier candidates, four additional variants, at most three calls per case",
+    "calls": 2592,
+    "dollar_ceiling": 11.943936
+  },
+  "conditional_verification_upper_bound": {
+    "assumption": "five policies; conditional policies costed as if verification always fires",
+    "calls": 648,
+    "dollar_ceiling": 2.985984
+  },
+  "full_72_case_single_model": {
+    "calls": 360,
+    "dollar_ceiling": 0.56291328
+  },
+  "sequential_racing_two_extra_repeats_upper_bound": {
+    "assumption": "three unresolved candidates, three calls per case, two extra repeats",
+    "calls": 1296,
+    "dollar_ceiling": 5.971968
+  }
+}

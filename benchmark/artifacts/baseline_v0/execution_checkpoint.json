@@ -1,0 +1,14 @@
+{
+  "calls_per_model": {
+    "claude-haiku-4-5-20251001": 1,
+    "claude-sonnet-5-5": 1,
+    "deepseek/deepseek-v4.1-flash": 72,
+    "gemini-3.5-flash-lite": 1,
+    "openai/gpt-oss-20b": 79,
+    "qwen/qwen3.8-27b": 79
+  },
+  "inference_calls": 233,
+  "phase": "frozen_complete",
+  "provider_requests": 233,
+  "reserved_spend_usd": 0.1788812800000001
+}

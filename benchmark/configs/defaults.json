@@ -1,0 +1,31 @@
+{
+  "evidence_state": "BENCHMARK",
+  "max_benchmark_spend_usd": null,
+  "max_total_calls": null,
+  "max_calls_per_model": null,
+  "max_concurrency": 1,
+  "retry": {
+    "max_attempts": 3,
+    "initial_delay_seconds": 0.25,
+    "max_delay_seconds": 4.0,
+    "jitter_fraction": 0.2
+  },
+  "tail_risk": {
+    "lower_percentile": 0.1,
+    "severe_failure_threshold": 0.2
+  },
+  "statistics": {
+    "confidence_level": 0.95,
+    "bootstrap_resamples": 2000,
+    "seed": 0
+  },
+  "baseline_v0": {
+    "prior_strength": 4.0,
+    "maximum_prior_strength": 5.0,
+    "minimum_racing_sample": 5,
+    "confidence_width_target": 0.05,
+    "correlation_penalty": 1.0,
+    "cvar_alpha": [0.9, 0.95],
+    "minimum_tail_observations": 5
+  }
+}

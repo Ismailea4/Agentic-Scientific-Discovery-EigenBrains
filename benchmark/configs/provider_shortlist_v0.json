@@ -1,0 +1,16 @@
+{
+  "version": "provider-shortlist-v0",
+  "created_at": "2026-10-03",
+  "evidence_state": "DISCOVERY_ONLY",
+  "warning": "Roles are hypotheses for the pilot, not measured performance conclusions.",
+  "excluded": [
+    {"provider": "openai", "reason": "Authentication and model listing succeeded, but the single inference probe returned HTTP 429. Reconsider only after rate/quota access is restored."}
+  ],
+  "models": [
+    {"provider": "anthropic", "model": "claude-sonnet-5-5", "candidate_roles": ["strong_reasoning", "critic_verifier"], "rationale": "High-capability candidate from a distinct model family; role fitness must be measured."},
+    {"provider": "gemini", "model": "gemini-3.5-flash-lite", "candidate_roles": ["low_cost", "structured_output"], "rationale": "Usable direct probe, low published token price, and documented structured-output support."},
+    {"provider": "groq", "model": "openai/gpt-oss-20b", "candidate_roles": ["low_latency", "low_cost", "structured_output"], "rationale": "Usable direct probe and the lowest published price/speed tier in the accessible Groq reasoning set."},
+    {"provider": "groq", "model": "qwen/qwen3.8-27b", "candidate_roles": ["complementary_alternative", "structured_output"], "rationale": "Different model family with reasoning, vision, and strict structured-output support; complementarity remains unmeasured."},
+    {"provider": "openrouter", "model": "deepseek/deepseek-v4.1-flash", "candidate_roles": ["complementary_alternative", "code_reasoning"], "rationale": "Distinct model family, verified catalogue access, published structured-output/tool support, and low routing price."}
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "version": "pre-challenge-baseline-v0-protocol",
+  "status": "PLANNED_AWAITING_APPROVAL",
+  "scoring": {
+    "primary": "SCORING_V1",
+    "secondary_reproducibility_metric": "primary_v0",
+    "freeze_rule": "No new aliases or normalizations may be added after provider execution begins."
+  },
+  "prompt": {
+    "temperature": 0,
+    "max_output_tokens": 256,
+    "max_input_tokens_for_budget": 1024,
+    "repeats": 1
+  },
+  "splits": {
+    "development": 48,
+    "tuning": 12,
+    "held_out": 12,
+    "threshold_fitting": ["dev", "tuning"],
+    "final_evaluation": ["held_out"]
+  },
+  "core_models": [
+    {"provider": "groq", "model": "openai/gpt-oss-20b"},
+    {"provider": "groq", "model": "qwen/qwen3.8-27b"},
+    {"provider": "openrouter", "model": "deepseek/deepseek-v4.1-flash"}
+  ],
+  "conditional_models": [
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "admission": "diagnostic calls succeed and the staged development run remains operationally stable"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "admission": "catalogue/model identifier is confirmed and candidate inference succeeds"
+    }
+  ],
+  "provider_diagnosis": {
+    "max_provider_requests": 6,
+    "max_inference_calls": 5,
+    "input_token_cap": 256,
+    "output_token_cap": 64,
+    "claude": [
+      "one catalogue/model-access request",
+      "one tiny candidate-model inference",
+      "one known-good Haiku control only if the candidate fails"
+    ],
+    "gemini": [
+      "one previously failing benchmark case",
+      "up to two tiny controls only if needed to distinguish throttling from request-format failure"
+    ]
+  },
+  "statistics": {
+    "confidence_level": 0.95,
+    "bootstrap_resamples": 2000,
+    "seed": 0,
+    "severe_failure_threshold": 0.2,
+    "failure_threshold": 0.5,
+    "covariance_shrinkage_intensity": 0.25,
+    "prior_strength": 4.0,
+    "maximum_prior_strength": 5.0,
+    "minimum_tail_observations": 5
+  },
+  "policies": {
+    "version": "S0-S4-v0",
+    "gate": {
+      "historical_error_ucb_threshold": 0.5,
+      "escalate_high_risk": true,
+      "task_owner_tie_break": "qwen",
+      "fit_splits": ["dev", "tuning"]
+    },
+    "definitions": [
+      {"id": "S0", "description": "GPT-OSS only"},
+      {"id": "S1", "description": "Qwen only"},
+      {"id": "S2", "description": "Always Qwen + GPT-OSS"},
+      {"id": "S3", "description": "Qwen first, selectively escalate to GPT-OSS"},
+      {"id": "S4", "description": "GPT-OSS first, selectively escalate to Qwen"}
+    ],
+    "runtime_signals_only": [
+      "task_family",
+      "schema_or_constraint_failure",
+      "task_risk_level",
+      "historical_task_family_error_ucb",
+      "explicit_abstention"
+    ],
+    "ground_truth_routing": false,
+    "reconciliation": "RECONCILIATION_V1",
+    "execution": "offline replay from paired single-model observations; no additional provider calls"
+  },
+  "sequential_racing": {
+    "max_additional_calls": 48,
+    "eligible_questions": [
+      "GPT/Qwen complementarity uncertainty",
+      "overlapping S2/S3/S4 frontier",
+      "verification rescue probability",
+      "unstable tail estimates"
+    ],
+    "stop_dominated_policies": true
+  }
+}
