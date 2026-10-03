@@ -1,0 +1,13 @@
+[project]
+name = "discolab"
+version = "0.1.0"
+description = "Dynamic-landscape evaluation environment and bio-inspired search baselines for studying evolutionary-search stagnation"
+requires-python = ">=3.12"
+dependencies = ["numpy>=2", "scipy>=1.13"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
