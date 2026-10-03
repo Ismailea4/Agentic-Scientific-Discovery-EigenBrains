@@ -57,3 +57,11 @@ def test_feature_matrix_uses_only_past():
     tr.best_err[-1] = 1e9  # perturb the latest value
     again = feature_matrix(ObsView(tr), FEATURE_SETS["full"])
     np.testing.assert_array_equal(full[:-1], again[:-1])
+
+
+def test_nested_feature_sets_extend_their_baselines():
+    for name in ("fitness+entropy", "fitness+dispersion", "fitness+spread"):
+        assert FEATURE_SETS[name][: len(FEATURE_SETS["fitness"])] == FEATURE_SETS["fitness"]
+    nested = FEATURE_SETS["fitness+dispersion+entropy"]
+    assert nested[: len(FEATURE_SETS["fitness+dispersion"])] == FEATURE_SETS["fitness+dispersion"]
+    assert set(nested) - set(FEATURE_SETS["fitness+dispersion"]) == {"H", "dH_5"}
