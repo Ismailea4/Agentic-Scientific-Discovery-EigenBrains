@@ -1,0 +1,9 @@
+name: lab
+description: discolab design tools (design space, proposals, deterministic scoring).
+transport: stdio
+command: python
+args: ["-m", "discolab.mcp_server"]
+env:
+  DISCOLAB_HOME: "${DISCOLAB_HOME}"
+  DISCOLAB_ACTOR: "designer"
+tools: [get_research_state, list_design_space, propose_experiment, score_experiments, register_hypothesis]

@@ -1,0 +1,76 @@
+{
+  "id": "E4",
+  "spec": {
+    "kind": "control",
+    "title": "Dev: B3 predictive vs hypermutation and random-immigrant baselines (H4)",
+    "rationale": "Compares restricted mean recovery time after landscape shifts for B3_predictive against B0_fixed, B1_stall, B2_entropy, B4a_hypermutation and B4b_immigrants, 12 seeds on development landscapes. If B3 beats the strongest non-oracle baseline (incl. hypermutation/immigrants): H4 supported and the predictor is operationally useful. If it only matches them: ranking gains (AUROC, no Brier gain) do not translate into control, so the predictor adds no value over simple triggers. If it loses: drop the predictive controller.",
+    "hypotheses": [
+      "H4"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 12,
+    "feature_sets": null,
+    "controllers": [
+      "B0_fixed",
+      "B1_stall",
+      "B2_entropy",
+      "B3_predictive",
+      "B4a_hypermutation",
+      "B4b_immigrants"
+    ]
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    400,
+    401,
+    402,
+    403,
+    404,
+    405,
+    406,
+    407,
+    408,
+    409,
+    410,
+    411
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "93132876bba840128bcf68f5c90d1ef3ebc04ae2fb681389181234dc47d57d8f",
+  "code": {
+    "discolab_sha256": "462af6a143f278c59563bcc8c4bfa18d31e3d2301bcc50b774c4ca97745b7e72",
+    "git_commit": "af3f736d5ee0432a7baaa6d18dfbc53231cd5820",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "risk_model_seeds": [
+    450,
+    451,
+    452,
+    453,
+    454,
+    455,
+    456,
+    457,
+    458,
+    459,
+    460,
+    461
+  ],
+  "runtime_sec": 23.122493700000632,
+  "calibration_added": {
+    "rastrigin": 9.891851102904504,
+    "ackley": 2.5963948451126417
+  }
+}

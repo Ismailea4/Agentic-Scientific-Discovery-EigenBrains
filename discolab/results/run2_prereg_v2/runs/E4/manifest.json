@@ -1,0 +1,60 @@
+{
+  "id": "E4",
+  "spec": {
+    "kind": "prediction",
+    "title": "Dev: entropy beyond dispersion (H5), 16 seeds",
+    "rationale": "H5 decides whether the cheaper dispersion signal suffices. Supported (dAUROC CI above 0.01 for fitness+dispersion+entropy vs fitness+dispersion) means entropy is worth keeping and B3 stays a candidate. Null means dispersion is enough and B3d (H7) becomes the controller to build. Larger than the earlier 'small' E3 to resolve a small expected effect.",
+    "hypotheses": [
+      "H5"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 16,
+    "feature_sets": [
+      "fitness",
+      "fitness+dispersion",
+      "fitness+dispersion+entropy"
+    ],
+    "controllers": null
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    2400,
+    2401,
+    2402,
+    2403,
+    2404,
+    2405,
+    2406,
+    2407,
+    2408,
+    2409,
+    2410,
+    2411,
+    2412,
+    2413,
+    2414,
+    2415
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "192ee0517b9ea0e4ad3d2f7a3bbb5c75c86aa60997879d172f46a3dacec74a0a",
+  "code": {
+    "discolab_sha256": "6bf736fa72fd1a9b4c7cec9ca656ac8ccde35be96605c1d7f481ab2984979715",
+    "git_commit": "9cdbff168171ecec6a4aa48b52674c069029b9da",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "runtime_sec": 12.501382500002364,
+  "calibration_added": {}
+}

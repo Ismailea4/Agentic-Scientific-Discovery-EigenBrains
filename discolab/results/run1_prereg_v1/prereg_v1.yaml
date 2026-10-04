@@ -1,0 +1,127 @@
+# discolab pre-registration — frozen before any confirmatory or comparative run.
+# Changing anything below after the first experiment requires a new prereg
+# version; the ledger records the SHA-256 of this file with every event.
+version: 1
+frozen_on: "2026-10-03"
+
+question: >-
+  Do the dynamics of population entropy carry early-warning information about
+  imminent search stagnation in a genetic algorithm, beyond what the fitness
+  history already reveals, and can that signal drive a mutation intervention
+  that recovers faster after the landscape changes?
+
+hypotheses:
+  - id: H1
+    family: prediction
+    statement: >-
+      Adding population-entropy features (H_t, dH_t) to fitness-history features
+      improves out-of-sample AUROC for predicting stagnation onset.
+    h0: Entropy features add no predictive information (delta AUROC <= 0).
+    feature_set: fitness+entropy
+    prior: 0.5
+  - id: H2
+    family: prediction
+    statement: >-
+      Adding genotypic dispersion features (D_t, dD_t) to fitness-history
+      features improves out-of-sample AUROC for predicting stagnation onset.
+    h0: Dispersion features add no predictive information.
+    feature_set: fitness+dispersion
+    prior: 0.5
+  - id: H3
+    family: prediction
+    statement: >-
+      Adding fitness-spread features (population log-error dispersion), which
+      need no genotype access, improves out-of-sample AUROC for stagnation onset.
+    h0: Fitness-spread features add no predictive information.
+    feature_set: fitness+spread
+    prior: 0.5
+  - id: H4
+    family: control
+    statement: >-
+      A mutation controller driven by the frozen stagnation-risk model (B3)
+      lowers restricted mean recovery time after landscape shifts compared
+      with the strongest non-oracle baseline.
+    h0: B3 does not recover faster than the strongest baseline.
+    controller: B3_predictive
+    # Prior coupling: a predictive controller is only plausible if the signal predicts.
+    prior_rule: {depends_on: H1, if_true: 0.5, if_false: 0.1}
+
+landscapes:
+  development: [rastrigin, ackley]
+  held_out: [griewank, levy, styblinski_tang]
+  excluded:
+    schwefel: optimum near the box corner and unbounded descent outside it; translation ill-posed
+
+ga:
+  dim: 10
+  pop_size: 50
+  crossover: SBX(eta=15, p=0.9)
+  mutation: per-gene Gaussian, sigma = 0.05 * box width, rate set by the controller
+  selection: binary tournament
+  elitism: 1 (re-evaluated every generation)
+  p_mut_range: [0.5/d, 4/d]
+  entropy: mean per-dimension normalised Shannon entropy, 10 fixed bins over the box
+
+seeds:
+  development: [0, 999]
+  test: [1000, 1999]
+  calibration: [9000, 9999]
+  allocation: experiment j uses block_start + 100*j + i, so no two experiments share runs
+
+prediction_study:
+  label: no improvement event (>0.1% drop in best error) within K generations
+  horizon_K: 10
+  at_risk: generations with an improvement event; windows crossing a shift excluded
+  static_generations: 200
+  data_policies: [B0_fixed_x0.5, B0_fixed_x1, B0_fixed_x2]
+  baseline_features: fitness   # rel. log best error, its 1/5/10-gen changes, stall, log generation
+  model: L2 logistic regression (lambda = 0.01) on standardised features
+  primary_metric: test AUROC difference vs fitness-only, paired run-cluster bootstrap (2000), stratified by function
+  dev_stage: leave-one-function-out across development landscapes
+  confirmatory_stage: train on development landscapes, test on held-out landscapes
+
+control_study:
+  epochs: 6            # epoch 0 is static burn-in; 5 shifts follow
+  period_generations: 60
+  severity: 0.2        # shift length as a fraction of the box half-width
+  max_offset: 0.5
+  controllers: [B0_fixed, B1_stall, B2_entropy, B3_predictive, B4a_hypermutation, B4b_immigrants]
+  b3_model: logistic on fitness+entropy, fitted on fresh development seeds only, then frozen
+  recovery_target: >-
+    eps_f = median over calibration seeds (B0 only) and post-shift epochs of the
+    best error at the end of each epoch. Chosen in a B0-only development pilot
+    because a burn-in-level target gave a recovery ceiling (B0 recovered 97-100%).
+  primary_metric: restricted mean recovery time (generations, censored at the period)
+  secondary_metrics: [recovery rate (Wilson), rescue/damage vs B0 (exact McNemar), CVaR90 of recovery time, offline error / eps]
+  analysis: paired by (function, seed); stratified bootstrap (4000) of mean difference; Wilcoxon; Holm across controllers
+
+decision_rules:
+  alpha: 0.05
+  smallest_effect_of_interest:
+    prediction_delta_auroc: 0.01
+    control_rmst_generations: 1.0
+  verdicts:
+    supported: 95% CI excludes zero in the hypothesised direction
+    refuted: 95% CI lies entirely inside (-inf, SESOI) for the hypothesised direction
+    inconclusive: otherwise
+  hypothesis_status: posterior >= 0.9 supported, <= 0.1 refuted, else open
+
+planner_policy:   # deterministic experiment selection (EigenBrains constrained utility)
+  utility: EIG_bits - eta * cost_seconds - lambda_heldout * heldout_landscapes_used
+  eta_bits_per_second: 0.001667     # 10 minutes of compute costs one bit
+  lambda_heldout_bits: 0.05
+  assumed_standardised_effect: 0.5  # replaced by the latest measured effect in the same family
+  likelihoods: {supported_given_H0: 0.025, refuted_given_H1: 0.02}
+  hard_constraints:
+    - cost within remaining compute budget
+    - confirmatory (held-out) test of a hypothesis only after a completed development-stage test of it
+  approximations:
+    - P(refuted | H0) is set equal to the design's power (equivalence power is not modelled separately)
+    - EIG of an experiment is the sum over the hypotheses it tests (treated as independent)
+    - an untested hypothesis with a prior_rule takes its prior from its parent's current posterior
+  compute_budget_seconds: 1800
+
+claims_policy:
+  - Results are reported whatever their direction; refuted hypotheses stay in the record.
+  - Literature evidence is recorded only with verified OpenAlex identifiers.
+  - Agent-generated hypotheses are labelled as such; numbers come only from tools.

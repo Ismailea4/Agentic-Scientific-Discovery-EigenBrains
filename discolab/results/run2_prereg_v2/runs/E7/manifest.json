@@ -1,0 +1,70 @@
+{
+  "id": "E7",
+  "spec": {
+    "kind": "control",
+    "title": "Dev: B3 vs B0 and rate-matched B0_fixed_x0.8 (H4+H6), 10 seeds",
+    "rationale": "One run answers both entropy-controller questions: does B3 beat fixed mutation (H4) and, more sharply, does timing beat rate (H6; B3 mutated ~0.8x of B0). If B3 beats both, entropy-timed control is supported; if B3 beats B0 but not x0.8, the gain is just a lower rate and the entropy signal is not used for control; if neither, the prediction gain does not translate to recovery.",
+    "hypotheses": [
+      "H4",
+      "H6"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 10,
+    "feature_sets": null,
+    "controllers": [
+      "B0_fixed",
+      "B3_predictive",
+      "B0_fixed_x0.8"
+    ]
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    2700,
+    2701,
+    2702,
+    2703,
+    2704,
+    2705,
+    2706,
+    2707,
+    2708,
+    2709
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "192ee0517b9ea0e4ad3d2f7a3bbb5c75c86aa60997879d172f46a3dacec74a0a",
+  "code": {
+    "discolab_sha256": "6bf736fa72fd1a9b4c7cec9ca656ac8ccde35be96605c1d7f481ab2984979715",
+    "git_commit": "9cdbff168171ecec6a4aa48b52674c069029b9da",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "risk_model_seeds": [
+    2750,
+    2751,
+    2752,
+    2753,
+    2754,
+    2755,
+    2756,
+    2757,
+    2758,
+    2759
+  ],
+  "runtime_sec": 13.482754199998453,
+  "calibration_added": {
+    "rastrigin": 9.891851102904504,
+    "ackley": 2.5963948451126417
+  }
+}

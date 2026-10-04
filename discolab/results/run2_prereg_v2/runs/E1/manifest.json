@@ -1,0 +1,59 @@
+{
+  "id": "E1",
+  "spec": {
+    "kind": "prediction",
+    "title": "Dev: entropy vs dispersion vs spread added to fitness (H1-H3)",
+    "rationale": "Tests three open prediction hypotheses at once with leave-one-landscape-out on the development landscapes. If entropy (H1) beats fitness-only AUROC, it unlocks a held-out confirmatory run and supports B3; if only dispersion/spread help, entropy is not special and the control work should shift to B3d (H7). If none help, the early-warning premise weakens.",
+    "hypotheses": [
+      "H1",
+      "H2",
+      "H3"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 12,
+    "feature_sets": [
+      "fitness",
+      "fitness+entropy",
+      "fitness+dispersion",
+      "fitness+spread"
+    ],
+    "controllers": null
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    2100,
+    2101,
+    2102,
+    2103,
+    2104,
+    2105,
+    2106,
+    2107,
+    2108,
+    2109,
+    2110,
+    2111
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "192ee0517b9ea0e4ad3d2f7a3bbb5c75c86aa60997879d172f46a3dacec74a0a",
+  "code": {
+    "discolab_sha256": "7c8e28dd254b41e40948e69001c1415d951246a7c6d5308859b7bf111b4afdaa",
+    "git_commit": "9cdbff168171ecec6a4aa48b52674c069029b9da",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "runtime_sec": 11.6546946999988,
+  "calibration_added": {}
+}
