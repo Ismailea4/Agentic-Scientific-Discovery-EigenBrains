@@ -1,10 +1,12 @@
 module EigenBrainsSDK
 
-using JSON3
+using JSON
 using Distributions
 using FastGaussQuadrature
 
-export Client, open_client, request!, initialize!, state, propose!, score!, select!, run!,
+export Client, ProtocolError, open_client, request!, initialize!, state, events,
+       propose!, score!, select!, run!, abort!, result, analyze!, decide!,
+       register_hypothesis!,
        entropy_bits, outcome_probabilities, likelihood_table, posterior,
        expected_information_gain, wilson_interval
 
@@ -14,6 +16,14 @@ mutable struct Client
     io::IO
     next_id::Int
 end
+
+struct ProtocolError <: Exception
+    code::String
+    message::String
+end
+
+Base.showerror(io::IO, error::ProtocolError) =
+    print(io, "EigenBrains remote error ", error.code, ": ", error.message)
 
 """Start the persistent Python bridge used by the Julia SDK."""
 function open_client(root::AbstractString; python::AbstractString="python", actor::AbstractString="julia-sdk")
@@ -25,25 +35,58 @@ function request!(client::Client, method::AbstractString, params=Dict{String,Any
     id = client.next_id
     client.next_id += 1
     request = Dict("id" => id, "version" => PROTOCOL_VERSION, "method" => method, "params" => params)
-    write(client.io, JSON3.write(request), '\n')
+    write(client.io, JSON.json(request), '\n')
     flush(client.io)
-    response = JSON3.read(readline(client.io), Dict{String,Any})
+    response = JSON.parse(readline(client.io))
     get(response, "id", nothing) == id || error("EigenBrains response id mismatch")
+    get(response, "version", nothing) == PROTOCOL_VERSION ||
+        error("EigenBrains response protocol version mismatch")
     if !get(response, "ok", false)
         detail = get(response, "error", Dict{String,Any}())
-        error("EigenBrains protocol error: $(get(detail, "message", "unknown error"))")
+        throw(ProtocolError(
+            string(get(detail, "code", "UnknownError")),
+            string(get(detail, "message", "unknown error")),
+        ))
     end
-    get(response, "result", nothing)
+    haskey(response, "result") || error("EigenBrains successful response omitted result")
+    response["result"]
 end
 
 initialize!(client::Client) = request!(client, "initialize")
 state(client::Client) = request!(client, "state")
+events(client::Client) = request!(client, "events")
 propose!(client::Client, experiment) = request!(client, "propose", Dict("experiment" => experiment))
 score!(client::Client) = request!(client, "score")
 select!(client::Client, id::AbstractString, why::AbstractString) =
     request!(client, "select", Dict("experiment_id" => id, "justification" => why))
 run!(client::Client; confirm_heldout::Bool=false) =
     request!(client, "run", Dict("confirm_heldout" => confirm_heldout))
+abort!(client::Client, id::AbstractString, reason::AbstractString) =
+    request!(client, "abort", Dict("experiment_id" => id, "reason" => reason))
+result(client::Client, id::AbstractString) =
+    request!(client, "result", Dict("experiment_id" => id))
+analyze!(
+    client::Client,
+    id::AbstractString,
+    interpretation::AbstractString;
+    threats_to_validity=String[],
+) = request!(client, "analyze", Dict(
+    "experiment_id" => id,
+    "interpretation" => interpretation,
+    "threats_to_validity" => collect(threats_to_validity),
+))
+decide!(
+    client::Client,
+    decision::AbstractString,
+    rationale::AbstractString;
+    next_experiment=nothing,
+) = request!(client, "decide", Dict(
+    "decision" => decision,
+    "rationale" => rationale,
+    "next_experiment" => next_experiment,
+))
+register_hypothesis!(client::Client, hypothesis) =
+    request!(client, "register_hypothesis", hypothesis)
 
 Base.close(client::Client) = close(client.io)
 
