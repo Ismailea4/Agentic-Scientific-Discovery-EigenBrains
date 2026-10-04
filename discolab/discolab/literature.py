@@ -1,5 +1,10 @@
-"""OpenAlex literature access. Evidence can only be recorded for works whose
-identifier resolves in OpenAlex, so a citation cannot be invented.
+"""Literature access (OpenAlex and arXiv). Evidence can only be recorded for works
+whose identifier resolves at its source, so a citation cannot be invented.
+
+Every work carries deterministic credibility facts (publication type, venue
+type, retraction status, citations) and a tier label, so agents and readers can
+weigh a claim by its source instead of treating every hit as equal. The tiers
+describe the evidence trail, not the truth of a claim.
 
 Set OPENALEX_API_KEY in the environment if your usage needs a key; the
 module never logs or returns it.
@@ -14,7 +19,12 @@ import urllib.parse
 import urllib.request
 
 BASE = "https://api.openalex.org"
-FIELDS = "id,doi,title,publication_year,primary_location,cited_by_count,authorships,abstract_inverted_index"
+FIELDS = ("id,doi,title,publication_year,primary_location,cited_by_count,authorships,abstract_inverted_index,"
+          "type,is_retracted")
+HIGHLY_CITED = 100
+CITED = 10
+PEER_REVIEWED_TYPES = {"article", "review", "conference-paper", "book-chapter", "book", "proceedings-article"}
+PEER_REVIEWED_VENUES = {"journal", "conference", "book series", "ebook platform"}
 _ID = re.compile(r"^(?:https://openalex\.org/)?(W\d+)$")
 
 
@@ -36,18 +46,45 @@ def _abstract(inv: dict | None, limit: int = 1200) -> str | None:
     return text[:limit] + ("..." if len(text) > limit else "")
 
 
+def credibility(kind: str | None, venue_type: str | None, cited_by: int | None, retracted: bool,
+                source: str = "openalex") -> dict:
+    """Deterministic, explainable credibility facts for one work."""
+    if retracted:
+        status = "retracted"
+    elif source == "arxiv" or kind == "preprint" or venue_type == "repository":
+        status = "preprint (not peer-reviewed)"
+    elif kind in ("report", "dissertation"):
+        status = f"{kind} (not peer-reviewed)"
+    elif kind in PEER_REVIEWED_TYPES and venue_type in PEER_REVIEWED_VENUES:
+        status = "peer-reviewed"
+    else:
+        status = "venue unverified"
+    if cited_by is None:
+        uptake = "citations unknown"
+    elif cited_by >= HIGHLY_CITED:
+        uptake = "highly cited"
+    elif cited_by >= CITED:
+        uptake = "cited"
+    else:
+        uptake = "low-citation"
+    return {"status": status, "uptake": uptake, "cited_by": cited_by, "type": kind, "venue_type": venue_type,
+            "retracted": retracted, "label": f"{status} · {uptake}" + (f" ({cited_by})" if cited_by is not None else "")}
+
+
 def _work(w: dict) -> dict:
     loc = w.get("primary_location") or {}
-    src = (loc.get("source") or {}).get("display_name")
+    src = loc.get("source") or {}
     authors = [a["author"]["display_name"] for a in (w.get("authorships") or [])[:4] if a.get("author")]
     return {
         "openalex_id": w["id"].rsplit("/", 1)[-1],
         "doi": w.get("doi"),
         "title": w.get("title"),
         "year": w.get("publication_year"),
-        "venue": src,
+        "venue": src.get("display_name"),
         "authors": authors,
         "cited_by": w.get("cited_by_count"),
+        "credibility": credibility(w.get("type"), src.get("type"), w.get("cited_by_count"),
+                                   bool(w.get("is_retracted"))),
         "abstract": _abstract(w.get("abstract_inverted_index")),
     }
 
@@ -64,11 +101,21 @@ def title_similarity(a: str, b: str) -> float:
     return len(wa & wb) / len(wa | wb)
 
 
-def search_works(query: str, max_results: int = 6) -> list[dict]:
+def search_works(query: str, max_results: int = 6, mode: str = "relevance") -> list[dict]:
+    """mode 'relevance': OpenAlex relevance ranking over full text.
+    mode 'most_cited': works whose title or abstract match, most cited first (finds
+    canonical anchors; results can include off-topic fields, so judge relevance)."""
     if not query.strip():
         raise ValueError("empty query")
-    data = _get("/works", {"search": query, "per_page": max(1, min(max_results, 15)), "select": FIELDS})
-    return [_work(w) for w in data.get("results", [])]
+    n = max(1, min(max_results, 15))
+    if mode == "relevance":
+        params = {"search": query, "per_page": n, "select": FIELDS}
+    elif mode == "most_cited":
+        params = {"filter": f"title_and_abstract.search:{query}", "sort": "cited_by_count:desc", "per_page": n,
+                  "select": FIELDS}
+    else:
+        raise ValueError("mode must be 'relevance' or 'most_cited'")
+    return [_work(w) for w in _get("/works", params).get("results", [])]
 
 
 ARXIV_API = "https://export.arxiv.org/api/query"
@@ -95,6 +142,7 @@ def parse_arxiv_feed(xml_text: str) -> list[dict]:
             "authors": [a.findtext("a:name", default="", namespaces=_ATOM) for a in e.findall("a:author", _ATOM)][:4],
             "abstract": text("a:summary")[:1200],
             "url": f"https://arxiv.org/abs/{m.group(1)}",
+            "credibility": credibility("preprint", "repository", None, False, source="arxiv"),
         })
     return out
 

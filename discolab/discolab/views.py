@@ -43,6 +43,7 @@ def state_summary(s: dict) -> dict:
         "hypotheses": hyps,
         "evidence": [{"source_id": e.get("openalex_id") or e.get("arxiv_id"), "source": "arXiv" if e.get("arxiv_id") else "OpenAlex", "title": e.get("title"), "year": e.get("year"),
                       "relation": e.get("relation"), "hypothesis_id": e.get("hypothesis_id"),
+                      "credibility": (e.get("credibility") or {}).get("label"), "limitation": e.get("limitation"),
                       "claim": e.get("claim")} for e in s["evidence"]],
         "candidates": cands,
         "selected": s["selected"],

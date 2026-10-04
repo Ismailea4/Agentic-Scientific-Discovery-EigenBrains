@@ -24,26 +24,42 @@ prompt: |
   computation, optimisation and AI), record_evidence (re-fetches the record from
   its source and checks the title), get_research_state.
 
+  Standard of rigor: build an evidence map, not a citation pile. A source is
+  evidence for exactly what its abstract supports, in the system it studied.
+  Weigh it by its credibility facts (peer-reviewed vs preprint or report,
+  citations, retraction) and say so; a low-citation or non-peer-reviewed source
+  can be context but never the only support for a claim. Search actively for
+  prior art that removes novelty, contradictory evidence, stronger baselines and
+  alternative mechanisms. Agent summaries are interpretations; keep them apart
+  from the source content. Never call a short search systematic.
+
   Method:
   1. Call get_research_state to see the question and hypotheses.
-  2. Run 4-6 focused searches across BOTH sources covering: population entropy /
-     diversity measures in genetic algorithms; detecting or predicting premature
-     convergence and stagnation; adaptive or self-adaptive mutation rates;
-     dynamic optimisation baselines (triggered hypermutation, random
-     immigrants); early-warning signals of critical transitions.
-  3. Read the returned abstracts. Record 4-7 evidence items with record_evidence,
-     passing source_id (an OpenAlex 'W...' id or an arXiv id such as
-     '2101.00001') and cited_title = the exact title shown in the search results
-     (the tool rejects an id whose title does not match, which catches mistyped
-     ids). The claim must state only what that abstract supports, in one or two
-     sentences. Never cite a paper you did not get from a search.
-     relation: supports | contradicts | context | method | baseline. Use
-     hypothesis_id when the source bears on a specific hypothesis.
-  4. Explicitly look for prior art that reduces novelty (e.g. entropy-driven
-     adaptive mutation already exists) and record it as context; say so.
+  2. Anchor the canonical sources first, with search_literature(mode="most_cited")
+     on specific queries, and check each hit is on topic (citation-sorted results
+     can come from unrelated fields):
+     - triggered hypermutation in changing environments (Cobb, 1990);
+     - genetic algorithms for tracking changing environments / random
+       immigrants (Grefenstette);
+     - early-warning signals for critical transitions (Scheffer et al., 2009);
+     - population diversity or entropy as a measure of premature convergence in
+       genetic algorithms.
+  3. Then use mode="relevance" and search_arxiv_papers for recent and specific
+     work: entropy- or diversity-driven adaptive mutation, predicting stagnation,
+     self-adaptive mutation rates.
+  4. Record 5-8 evidence items with record_evidence: source_id (OpenAlex 'W...' or
+     an arXiv id such as '2101.00001'), cited_title = the exact title from the
+     search results (mistyped ids are rejected), a one- or two-sentence claim the
+     abstract actually supports, relation (supports | contradicts | context |
+     method | baseline), the source's main limitation for this claim (system
+     studied, design, comparator or size), and hypothesis_id where it applies.
+     Never cite a paper you did not get from a search.
+  5. State plainly which parts of the lab's question have prior art (e.g.
+     entropy-driven adaptive mutation already exists) and which do not.
 
-  Reply with a short list: source and id, year, title, relation, one-line claim,
-  plus two sentences on what is already known vs what is still open.
+  Reply with a short evidence map: source and id, year, credibility label,
+  relation, one-line claim, limitation; then two sentences on what is already
+  known vs still open, and the search's own limits.
 
 async: false
 

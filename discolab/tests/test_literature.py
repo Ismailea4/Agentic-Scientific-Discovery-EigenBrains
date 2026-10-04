@@ -24,3 +24,13 @@ def test_arxiv_feed_parsing_and_id_validation():
     assert w["arxiv_id"] == "1203.4567" and w["year"] == 2012
     assert w["title"] == "Entropy and premature convergence in genetic algorithms"
     assert is_arxiv_id("arXiv:1203.4567v2") and is_arxiv_id("cs/0112017") and not is_arxiv_id("W2350741577")
+
+
+def test_credibility_labels_are_deterministic_and_conservative():
+    from discolab.literature import credibility
+    assert credibility("article", "journal", 4959, False)["label"] == "peer-reviewed · highly cited (4959)"
+    assert credibility("article", "journal", 3, False)["uptake"] == "low-citation"
+    assert credibility("report", None, 395, False)["status"] == "report (not peer-reviewed)"
+    assert credibility("preprint", "repository", None, False, source="arxiv")["status"].startswith("preprint")
+    assert credibility("article", None, 50, False)["status"] == "venue unverified"
+    assert credibility("article", "journal", 900, True)["status"] == "retracted"

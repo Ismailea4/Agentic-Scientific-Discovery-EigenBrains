@@ -182,9 +182,12 @@ def register_hypothesis(hypothesis_id: str, statement: str, h0: str, family: str
 
 
 @mcp.tool()
-def search_literature(query: str, max_results: int = 6) -> list[dict]:
-    """Search OpenAlex. Returns real works with ids, DOI, year, venue, authors, abstract."""
-    return search_works(query, max_results)
+def search_literature(query: str, max_results: int = 6, mode: str = "relevance") -> list[dict]:
+    """Search OpenAlex (peer-reviewed literature across disciplines). mode 'relevance' ranks
+    by match; mode 'most_cited' returns title/abstract matches most-cited first, to find
+    the canonical work on a topic (judge topical relevance yourself). Each work carries
+    credibility facts: peer-review status, citations, venue type, retraction."""
+    return search_works(query, max_results, mode)
 
 
 @mcp.tool()
@@ -195,13 +198,17 @@ def search_arxiv_papers(query: str, max_results: int = 6) -> list[dict]:
 
 
 @mcp.tool()
-def record_evidence(source_id: str, cited_title: str, claim: str, relation: str,
+def record_evidence(source_id: str, cited_title: str, claim: str, relation: str, limitation: str,
                     hypothesis_id: str | None = None) -> dict:
     """Record literature evidence from OpenAlex (source_id 'W...') or arXiv (e.g.
     '2101.00001'). The record is re-fetched from its source and its title must match
     cited_title (the title you read in the search results), so a mistyped id that points
     at a different paper is rejected. The claim must be what the source's abstract
-    actually supports. relation: supports | contradicts | context | method | baseline."""
+    actually supports. limitation: the source's main limitation for this claim (design,
+    system studied, comparator, size) — required, as in an evidence map. Retracted works
+    are refused. relation: supports | contradicts | context | method | baseline."""
+    if not limitation.strip():
+        raise ValueError("state the source's main limitation for this claim")
     if relation not in EVIDENCE_RELATIONS:
         raise ValueError(f"relation must be one of {EVIDENCE_RELATIONS}")
     if is_arxiv_id(source_id):
@@ -213,11 +220,15 @@ def record_evidence(source_id: str, cited_title: str, claim: str, relation: str,
     if title_similarity(cited_title, w["title"] or "") < TITLE_MATCH_MIN:
         raise ValueError(f"{source_id} is titled {w['title']!r}, which does not match the cited title "
                          f"{cited_title!r}; check the id")
+    if w["credibility"]["retracted"]:
+        raise ValueError(f"{source_id} is retracted and cannot be used as evidence")
     payload = {**ids, "title": w["title"], "year": w["year"], "authors": w["authors"], "claim": claim,
                "claim_origin": "agent summary", "relation": relation, "hypothesis_id": hypothesis_id,
+               "limitation": limitation, "credibility": w["credibility"],
                "source_excerpt": (w["abstract"] or "")[:600]}
     Ledger(lab.lab_root()).append("evidence_recorded", payload, _actor())
-    return {"recorded": ids.get("openalex_id") or ids.get("arxiv_id"), "title": w["title"], "year": w["year"]}
+    return {"recorded": ids.get("openalex_id") or ids.get("arxiv_id"), "title": w["title"], "year": w["year"],
+            "credibility": w["credibility"]["label"]}
 
 
 if __name__ == "__main__":
