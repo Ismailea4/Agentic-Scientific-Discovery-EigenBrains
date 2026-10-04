@@ -40,17 +40,32 @@ class Recorder:
         self.fh.flush()
 
 
-async def approve(client, sid: str, d: dict) -> None:
+APPROVAL_WAIT_SEC = 120
+RESOLVED: dict[str, asyncio.Event] = {}
+
+
+async def approve(client, sid: str, d: dict, ui_url: str) -> None:
+    """Put an Omnigent ASK to a human. Never approves on its own."""
+    eid = d["elicitation_id"]
     msg = (d.get("params") or {}).get("message") or "Approve?"
     print(f"\n*** HUMAN APPROVAL REQUESTED: {msg}", flush=True)
+    done = RESOLVED.setdefault(eid, asyncio.Event())
     if sys.stdin.isatty():
         ans = await asyncio.to_thread(input, "approve? [y/N] ")
         action = "accept" if ans.strip().lower() in ("y", "yes") else "decline"
     else:
-        action = "decline"
-        print("*** no terminal attached: declining (fail closed)", flush=True)
-    await client.sessions.resolve_elicitation(sid, d["elicitation_id"], {"action": action})
-    print(f"*** approval {action}ed", flush=True)
+        print(f"*** approve or decline in the Omnigent web UI ({ui_url}); "
+              f"declining in {APPROVAL_WAIT_SEC}s if nobody answers", flush=True)
+        try:
+            await asyncio.wait_for(done.wait(), APPROVAL_WAIT_SEC)
+            print("*** resolved by a human in the web UI", flush=True)
+            return
+        except asyncio.TimeoutError:
+            action = "decline"
+            print("*** no human answered: declining (fail closed)", flush=True)
+    if not done.is_set():
+        await client.sessions.resolve_elicitation(sid, eid, {"action": action})
+        print(f"*** approval {action}ed", flush=True)
 
 
 async def tail(client, sid: str, label: str, rec: Recorder, state: dict, children: set):
@@ -84,7 +99,10 @@ async def _tail(client, sid: str, label: str, rec: Recorder, state: dict, childr
             if ch.get("title") and busy is not None:
                 print(f"[{label}] handoff {ch['title']}: {'running' if busy else 'finished'}", flush=True)
         elif t == "response.elicitation_request":
-            await approve(client, sid, d)
+            # run concurrently so the stream keeps flowing (a web-UI answer arrives on it)
+            asyncio.create_task(approve(client, sid, d, state.get("ui_url", "")))
+        elif t == "response.elicitation_resolved":
+            RESOLVED.setdefault(d.get("elicitation_id", ""), asyncio.Event()).set()
         elif t == "response.output_item.done":
             item = d.get("item") or {}
             if item.get("type") == "function_call" and item.get("status") == "completed":
@@ -121,7 +139,7 @@ async def main():
         sid = r.json().get("session_id") or r.json().get("id")
         print(f"PI session {sid}  (web UI: {url})", flush=True)
         rec.write(sid, {"type": "driver.session_created", "agent": args.agent, "prompt": args.prompt})
-        state: dict = {"status": None, "changed": time.time()}
+        state: dict = {"status": None, "changed": time.time(), "ui_url": url}
         children: set = set()
         task = asyncio.create_task(tail(client, sid, "pi", rec, state, children))
         await asyncio.sleep(1.0)
