@@ -41,7 +41,7 @@ def state_summary(s: dict) -> dict:
         "question": s["question"],
         "compute_seconds": {"used": _r(s["compute_used_sec"], 1), "budget": s["compute_budget_sec"]},
         "hypotheses": hyps,
-        "evidence": [{"openalex_id": e["openalex_id"], "title": e.get("title"), "year": e.get("year"),
+        "evidence": [{"source_id": e.get("openalex_id") or e.get("arxiv_id"), "source": "arXiv" if e.get("arxiv_id") else "OpenAlex", "title": e.get("title"), "year": e.get("year"),
                       "relation": e.get("relation"), "hypothesis_id": e.get("hypothesis_id"),
                       "claim": e.get("claim")} for e in s["evidence"]],
         "candidates": cands,

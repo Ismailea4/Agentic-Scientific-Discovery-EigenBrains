@@ -6,4 +6,4 @@ args: ["-m", "discolab.mcp_server"]
 env:
   DISCOLAB_HOME: "${DISCOLAB_HOME}"
   DISCOLAB_ACTOR: "literature"
-tools: [get_research_state, search_literature, record_evidence]
+tools: [get_research_state, search_literature, search_arxiv_papers, record_evidence]

@@ -155,7 +155,7 @@ def _apply(s: dict, ev: dict) -> None:
         for h in p["hypotheses"]:
             s["hypotheses"][h["id"]] = {**h, "status": "open", "posterior": h["prior"], "history": []}
     elif t == "evidence_recorded":
-        _need(bool(p.get("openalex_id")), "evidence requires a verified OpenAlex id")
+        _need(bool(p.get("openalex_id") or p.get("arxiv_id")), "evidence requires a verified OpenAlex or arXiv id")
         s["evidence"].append({**p, "seq": ev["seq"], "recorded_by": ev["actor"]})
     elif t == "hypothesis_registered":
         _need(p["id"] not in s["hypotheses"], f"hypothesis {p['id']} already exists")

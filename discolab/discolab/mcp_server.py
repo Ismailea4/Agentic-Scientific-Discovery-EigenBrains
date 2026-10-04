@@ -17,7 +17,7 @@ from . import lab
 from .experiments import n_workers
 from .features import FEATURE_SETS
 from .ledger import Ledger
-from .literature import TITLE_MATCH_MIN, fetch_work, search_works, title_similarity
+from .literature import TITLE_MATCH_MIN, fetch_arxiv, fetch_work, is_arxiv_id, search_arxiv, search_works, \n    title_similarity
 from .prereg import load_prereg
 from .views import result_summary, state_summary
 
@@ -188,24 +188,36 @@ def search_literature(query: str, max_results: int = 6) -> list[dict]:
 
 
 @mcp.tool()
-def record_evidence(openalex_id: str, cited_title: str, claim: str, relation: str,
+def search_arxiv_papers(query: str, max_results: int = 6) -> list[dict]:
+    """Search arXiv (preprints in AI, optimisation, evolutionary computation). Returns
+    arxiv_id, title, year, authors, abstract. Throttled to arXiv's 1 request / 3 s."""
+    return search_arxiv(query, max_results)
+
+
+@mcp.tool()
+def record_evidence(source_id: str, cited_title: str, claim: str, relation: str,
                     hypothesis_id: str | None = None) -> dict:
-    """Record literature evidence. The id is re-fetched from OpenAlex and its title must
-    match cited_title (the title you read in search_literature), so a mistyped id that
-    points at a different paper is rejected. The claim must be what the source's abstract
+    """Record literature evidence from OpenAlex (source_id 'W...') or arXiv (e.g.
+    '2101.00001'). The record is re-fetched from its source and its title must match
+    cited_title (the title you read in the search results), so a mistyped id that points
+    at a different paper is rejected. The claim must be what the source's abstract
     actually supports. relation: supports | contradicts | context | method | baseline."""
     if relation not in EVIDENCE_RELATIONS:
         raise ValueError(f"relation must be one of {EVIDENCE_RELATIONS}")
-    w = fetch_work(openalex_id)
+    if is_arxiv_id(source_id):
+        w = fetch_arxiv(source_id)
+        ids = {"arxiv_id": w["arxiv_id"], "url": w["url"]}
+    else:
+        w = fetch_work(source_id)
+        ids = {"openalex_id": w["openalex_id"], "doi": w["doi"], "venue": w["venue"]}
     if title_similarity(cited_title, w["title"] or "") < TITLE_MATCH_MIN:
-        raise ValueError(f"{openalex_id} is titled {w['title']!r}, which does not match the cited title "
+        raise ValueError(f"{source_id} is titled {w['title']!r}, which does not match the cited title "
                          f"{cited_title!r}; check the id")
-    payload = {"openalex_id": w["openalex_id"], "doi": w["doi"], "title": w["title"], "year": w["year"],
-               "venue": w["venue"], "authors": w["authors"], "claim": claim, "claim_origin": "agent summary",
-               "relation": relation, "hypothesis_id": hypothesis_id,
+    payload = {**ids, "title": w["title"], "year": w["year"], "authors": w["authors"], "claim": claim,
+               "claim_origin": "agent summary", "relation": relation, "hypothesis_id": hypothesis_id,
                "source_excerpt": (w["abstract"] or "")[:600]}
     Ledger(lab.lab_root()).append("evidence_recorded", payload, _actor())
-    return {"recorded": w["openalex_id"], "title": w["title"], "year": w["year"]}
+    return {"recorded": ids.get("openalex_id") or ids.get("arxiv_id"), "title": w["title"], "year": w["year"]}
 
 
 if __name__ == "__main__":

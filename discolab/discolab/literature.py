@@ -71,6 +71,72 @@ def search_works(query: str, max_results: int = 6) -> list[dict]:
     return [_work(w) for w in data.get("results", [])]
 
 
+ARXIV_API = "https://export.arxiv.org/api/query"
+_ARXIV_ID = re.compile(r"^(?:arxiv:)?(\d{4}\.\d{4,5}|[a-z\-]+(?:\.[A-Z]{2})?/\d{7})(?:v\d+)?$", re.IGNORECASE)
+_ATOM = {"a": "http://www.w3.org/2005/Atom"}
+
+
+def parse_arxiv_feed(xml_text: str) -> list[dict]:
+    """Parse an arXiv API Atom feed into work records (no network)."""
+    import xml.etree.ElementTree as ET
+
+    root = ET.fromstring(xml_text)
+    out = []
+    for e in root.findall("a:entry", _ATOM):
+        raw_id = (e.findtext("a:id", default="", namespaces=_ATOM) or "").rsplit("/abs/", 1)[-1]
+        m = _ARXIV_ID.match(raw_id)
+        if not m:
+            continue
+        text = lambda tag: " ".join((e.findtext(tag, default="", namespaces=_ATOM) or "").split())  # noqa: E731
+        out.append({
+            "arxiv_id": m.group(1),
+            "title": text("a:title"),
+            "year": int(text("a:published")[:4]) if text("a:published") else None,
+            "authors": [a.findtext("a:name", default="", namespaces=_ATOM) for a in e.findall("a:author", _ATOM)][:4],
+            "abstract": text("a:summary")[:1200],
+            "url": f"https://arxiv.org/abs/{m.group(1)}",
+        })
+    return out
+
+
+ARXIV_MIN_INTERVAL_SEC = 3.0  # arXiv API terms of use: at most one request every 3 seconds
+_last_arxiv_call = [0.0]
+
+
+def _arxiv(params: dict) -> list[dict]:
+    import time
+
+    wait = ARXIV_MIN_INTERVAL_SEC - (time.monotonic() - _last_arxiv_call[0])
+    if wait > 0:
+        time.sleep(wait)
+    _last_arxiv_call[0] = time.monotonic()
+    url = f"{ARXIV_API}?{urllib.parse.urlencode(params)}"
+    req = urllib.request.Request(url, headers={"User-Agent": "discolab/0.1 (research lab prototype)"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return parse_arxiv_feed(resp.read().decode("utf-8"))
+
+
+def search_arxiv(query: str, max_results: int = 6) -> list[dict]:
+    if not query.strip():
+        raise ValueError("empty query")
+    terms = " AND ".join(f"all:{w}" for w in query.split())
+    return _arxiv({"search_query": terms, "max_results": max(1, min(max_results, 15))})
+
+
+def fetch_arxiv(arxiv_id: str) -> dict:
+    m = _ARXIV_ID.match(arxiv_id.strip())
+    if not m:
+        raise ValueError(f"not an arXiv id: {arxiv_id!r} (expected e.g. 2101.00001)")
+    found = _arxiv({"id_list": m.group(1)})
+    if not found:
+        raise ValueError(f"arXiv id {m.group(1)} did not resolve")
+    return found[0]
+
+
+def is_arxiv_id(source_id: str) -> bool:
+    return bool(_ARXIV_ID.match(source_id.strip()))
+
+
 def fetch_work(openalex_id: str) -> dict:
     m = _ID.match(openalex_id.strip())
     if not m:
