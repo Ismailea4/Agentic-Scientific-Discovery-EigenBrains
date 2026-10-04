@@ -1,0 +1,91 @@
+{
+  "id": "E2",
+  "spec": {
+    "kind": "prediction",
+    "title": "H2 development test, 48 seeds",
+    "rationale": "acceleration study design for H2",
+    "hypotheses": [
+      "H2"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 48,
+    "feature_sets": [
+      "fitness",
+      "fitness+dispersion"
+    ],
+    "controllers": null
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    300200,
+    300201,
+    300202,
+    300203,
+    300204,
+    300205,
+    300206,
+    300207,
+    300208,
+    300209,
+    300210,
+    300211,
+    300212,
+    300213,
+    300214,
+    300215,
+    300216,
+    300217,
+    300218,
+    300219,
+    300220,
+    300221,
+    300222,
+    300223,
+    300224,
+    300225,
+    300226,
+    300227,
+    300228,
+    300229,
+    300230,
+    300231,
+    300232,
+    300233,
+    300234,
+    300235,
+    300236,
+    300237,
+    300238,
+    300239,
+    300240,
+    300241,
+    300242,
+    300243,
+    300244,
+    300245,
+    300246,
+    300247
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "3916bdbadd7c370d21fe057f497489773b4b28934305d8d2d6b68621c3c4292f",
+  "code": {
+    "discolab_sha256": "3149992a88ed19f24d36a243e609c6f2b855fb1894ea35a4982a8d7fcda3ba74",
+    "git_commit": "39941eb4262ac198318282e1000adf7ffa4c13f5",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "runtime_sec": 22.909031600000162,
+  "calibration_added": {}
+}

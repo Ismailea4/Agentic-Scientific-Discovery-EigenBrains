@@ -1,0 +1,97 @@
+{
+  "id": "E7",
+  "spec": {
+    "kind": "control",
+    "title": "H7 development test, 24 seeds",
+    "rationale": "acceleration study design for H7",
+    "hypotheses": [
+      "H7"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 24,
+    "feature_sets": null,
+    "controllers": [
+      "B0_fixed",
+      "B1_stall",
+      "B2_entropy",
+      "B4a_hypermutation",
+      "B4b_immigrants",
+      "B3d_predictive"
+    ]
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    120700,
+    120701,
+    120702,
+    120703,
+    120704,
+    120705,
+    120706,
+    120707,
+    120708,
+    120709,
+    120710,
+    120711,
+    120712,
+    120713,
+    120714,
+    120715,
+    120716,
+    120717,
+    120718,
+    120719,
+    120720,
+    120721,
+    120722,
+    120723
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "1efc1f9d482ea137255c87ea4b0e99078a34be1b631f5390b7c1e2d0c67b8160",
+  "code": {
+    "discolab_sha256": "3149992a88ed19f24d36a243e609c6f2b855fb1894ea35a4982a8d7fcda3ba74",
+    "git_commit": "39941eb4262ac198318282e1000adf7ffa4c13f5",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "risk_model_seeds": [
+    120750,
+    120751,
+    120752,
+    120753,
+    120754,
+    120755,
+    120756,
+    120757,
+    120758,
+    120759,
+    120760,
+    120761,
+    120762,
+    120763,
+    120764,
+    120765,
+    120766,
+    120767,
+    120768,
+    120769,
+    120770,
+    120771,
+    120772,
+    120773
+  ],
+  "runtime_sec": 21.24926250000135,
+  "calibration_added": {}
+}

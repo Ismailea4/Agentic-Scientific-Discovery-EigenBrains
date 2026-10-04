@@ -1,0 +1,68 @@
+{
+  "id": "E4",
+  "spec": {
+    "kind": "prediction",
+    "title": "H5 development test, 24 seeds",
+    "rationale": "acceleration study design for H5",
+    "hypotheses": [
+      "H5"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 24,
+    "feature_sets": [
+      "fitness",
+      "fitness+dispersion",
+      "fitness+dispersion+entropy"
+    ],
+    "controllers": null
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    140400,
+    140401,
+    140402,
+    140403,
+    140404,
+    140405,
+    140406,
+    140407,
+    140408,
+    140409,
+    140410,
+    140411,
+    140412,
+    140413,
+    140414,
+    140415,
+    140416,
+    140417,
+    140418,
+    140419,
+    140420,
+    140421,
+    140422,
+    140423
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "5fcd0f05294c152843ee46c184c18e211e0a92d10dd97143f53fb9f25b327451",
+  "code": {
+    "discolab_sha256": "3149992a88ed19f24d36a243e609c6f2b855fb1894ea35a4982a8d7fcda3ba74",
+    "git_commit": "39941eb4262ac198318282e1000adf7ffa4c13f5",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "runtime_sec": 20.813445600004343,
+  "calibration_added": {}
+}
