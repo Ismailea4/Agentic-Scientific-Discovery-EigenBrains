@@ -9,6 +9,9 @@ B4a hypermutation   p = p_max for a fixed window after an observed fitness jump
                     (triggered hypermutation, Cobb 1990)
 B4b immigrants      a fixed fraction of offspring replaced by uniform random points
                     every generation (random immigrants, Grefenstette 1992)
+B5  hybrid          rate-matched base rate 0.8/d plus predictive timing: a burst to
+                    p_max for 5 generations when the frozen risk model's estimate
+                    crosses 0.5 (rising edge), then back to the base rate
 """
 
 from __future__ import annotations
@@ -111,6 +114,37 @@ class Predictive(Controller):
         return Action(p_mut=self.p_min + (self.p_max - self.p_min) * r)
 
 
+class HybridPredictive(Controller):
+    """B5: keep the rate that recovers best on average and add predictive timing.
+
+    Motivated by lab evidence: the risk-driven controller (B3) and a fixed rate
+    matched to its average fail on largely different runs, so their mechanisms
+    may be complementary. Constants are fixed before testing.
+    """
+
+    name = "B5_hybrid"
+    BASE_MULT = 0.8
+    THRESHOLD = 0.5
+    BURST = 5
+
+    def __init__(self, model: "LogisticModel"):
+        self.model = model
+
+    def reset(self, cfg, landscape):
+        super().reset(cfg, landscape)
+        self.base = min(1.0, self.BASE_MULT / cfg.dim)
+        self.until = -1
+        self.prev_risk = 0.0
+
+    def act(self, obs) -> Action:
+        g = obs.gen[-1]
+        r = float(self.model.predict_proba(feature_matrix(obs, self.model.names)[-1:])[0])
+        if r >= self.THRESHOLD > self.prev_risk:  # rising edge: predicted stagnation onset
+            self.until = g + self.BURST
+        self.prev_risk = r
+        return Action(p_mut=self.p_max if g < self.until else self.base)
+
+
 class Hypermutation(Controller):
     name = "B4a_hypermutation"
 
@@ -152,6 +186,10 @@ def make_controller(name: str, model: LogisticModel | None = None) -> Controller
         return Predictive(model)
     if name == "B4a_hypermutation":
         return Hypermutation()
+    if name == "B5_hybrid":
+        if model is None:
+            raise ValueError("B5_hybrid requires a fitted LogisticModel")
+        return HybridPredictive(model)
     if name == "B4b_immigrants":
         return RandomImmigrants()
     if name.startswith("B0_fixed_x"):

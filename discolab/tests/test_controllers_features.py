@@ -65,3 +65,27 @@ def test_nested_feature_sets_extend_their_baselines():
     nested = FEATURE_SETS["fitness+dispersion+entropy"]
     assert nested[: len(FEATURE_SETS["fitness+dispersion"])] == FEATURE_SETS["fitness+dispersion"]
     assert set(nested) - set(FEATURE_SETS["fitness+dispersion"]) == {"H", "dH_5"}
+
+
+def _constant_risk_model(intercept: float) -> C.LogisticModel:
+    names = FEATURE_SETS["fitness+entropy"]
+    k = len(names)
+    return C.LogisticModel("fitness+entropy", names, np.zeros(k), np.ones(k), np.zeros(k), intercept)
+
+
+def test_hybrid_holds_the_rate_matched_base_when_risk_is_low():
+    tr = run(C.HybridPredictive(_constant_risk_model(-10.0)))
+    assert np.allclose(tr.p_mut, 0.8 / CFG.dim)
+
+
+def test_hybrid_bursts_once_on_a_rising_edge_of_predicted_risk():
+    tr = run(C.HybridPredictive(_constant_risk_model(10.0)))
+    p = np.asarray(tr.p_mut)
+    burst = C.HybridPredictive.BURST
+    assert np.allclose(p[:burst], 4.0 / CFG.dim)  # risk crosses 0.5 at generation 0
+    assert np.allclose(p[burst:], 0.8 / CFG.dim)  # no new rising edge while risk stays high
+
+
+def test_hybrid_requires_a_model():
+    with pytest.raises(ValueError):
+        C.make_controller("B5_hybrid")
