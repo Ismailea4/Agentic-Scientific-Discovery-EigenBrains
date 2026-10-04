@@ -13,12 +13,15 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from . import lab
+from .bundle import export_bundle, verify_bundle
 from .evidence import (
     ArtifactSchema,
+    EvidenceError,
     EvidenceStore,
     ExperimentSpecV2,
     MetricSpec,
     RunContext,
+    _validate_name,
 )
 from .ledger import Ledger
 from .views import result_summary
@@ -91,9 +94,14 @@ class DiscoveryLab:
         Provenance label written on every transition initiated by this client.
     """
 
-    def __init__(self, root: str | Path, *, actor: str = "python-sdk"):
+    def __init__(self, root: str | Path, *, actor: str = "python-sdk",
+                 allowed_runner_modules: Iterable[str] | None = None):
         self.root = Path(root).resolve()
         self.actor = actor
+        # None: trusted in-process caller, any importable runner may be named.
+        # A collection (the RPC bridge): a runner is imported only when its module
+        # is listed or is a submodule of a listed module; by default none is.
+        self.allowed_runner_modules = None if allowed_runner_modules is None else tuple(allowed_runner_modules)
         self._research_contexts: dict[str, RunContext] = {}
 
     @property
@@ -165,6 +173,7 @@ class DiscoveryLab:
     # stable boundary used by the Rust and Julia bridge clients.
     def begin_research_run(self, spec: ExperimentSpecV2 | dict[str, Any]) -> dict[str, Any]:
         parsed = spec if isinstance(spec, ExperimentSpecV2) else ExperimentSpecV2.from_dict(spec)
+        self._check_runner(parsed.runner)
         context = EvidenceStore(self.root).begin(parsed)
         self._research_contexts[context.run_id] = context
         return {"run_id": context.run_id, "status": "running", "seed": context.seed}
@@ -208,9 +217,12 @@ class DiscoveryLab:
                 "elapsed_seconds": context.elapsed_seconds}
 
     def finalize_research_run(self, run_id: str) -> dict[str, Any]:
-        result = self._research_context(run_id).finalize()
-        self._research_contexts.pop(run_id, None)
-        return result
+        context = self._research_context(run_id)
+        try:
+            return context.finalize()
+        finally:
+            if not context.is_open:
+                self._research_contexts.pop(run_id, None)
 
     def inspect_research_run(self, run_id: str) -> dict[str, Any]:
         return EvidenceStore(self.root).inspect(run_id)
@@ -224,11 +236,86 @@ class DiscoveryLab:
     def accept_research_run(self, run_id: str, rationale: str) -> dict[str, Any]:
         return EvidenceStore(self.root).accept(run_id, rationale)
 
+    def reject_research_run(self, run_id: str, reason: str) -> dict[str, Any]:
+        return EvidenceStore(self.root).reject(run_id, reason)
+
     def reproduce_research_run(self, run_id: str) -> dict[str, Any]:
+        self._check_runner(EvidenceStore(self.root).inspect(run_id)["spec"].get("runner"))
         return EvidenceStore(self.root).reproduce(run_id)
+
+    def list_research_runs(
+        self,
+        *,
+        capability: str | None = None,
+        status: str | None = None,
+        seed: int | None = None,
+        created_after: Any = None,
+        created_before: Any = None,
+    ) -> list[dict[str, Any]]:
+        return EvidenceStore(self.root).list(capability=capability, status=status, seed=seed,
+                                             created_after=created_after, created_before=created_before)
+
+    def checkpoint_research_run(self, run_id: str, state: dict[str, Any] | None = None) -> dict[str, Any]:
+        return self._research_context(run_id).checkpoint(state)
+
+    def resume_research_run(self, run_id: str) -> dict[str, Any]:
+        """Reopen an interrupted run in this process from its last checkpoint. The
+        caller continues it with emit/metric/consume/finalize; no code is executed."""
+        if run_id in self._research_contexts:
+            raise EvidenceError(f"run {run_id} is already open in this SDK process")
+        self._check_runner(EvidenceStore(self.root).inspect(run_id)["spec"].get("runner"))
+        context = EvidenceStore(self.root).resume(run_id)
+        self._research_contexts[run_id] = context
+        return {"run_id": run_id, "status": "running", "checkpoint_sequence": context.resumed_from,
+                "state": context.restored_state, "evaluations": context.evaluations,
+                "elapsed_seconds": context.elapsed_seconds, "artifacts": sorted(context._artifacts),
+                "metrics": sorted(context._metrics)}
+
+    def fail_research_run(self, run_id: str, error_type: str, message: str) -> dict[str, Any]:
+        """Record that the client's experiment code failed; the run becomes failed."""
+        _validate_name(error_type, "error type")
+        self._research_context(run_id).record_failure(error_type, message)
+        self._research_contexts.pop(run_id, None)
+        return {"run_id": run_id, "status": "failed"}
+
+    def research_lineage(self) -> dict[str, Any]:
+        return EvidenceStore(self.root).lineage()
+
+    def export_research_bundle(self, run_ids: Iterable[str], name: str) -> dict[str, Any]:
+        """Export runs to ``<root>/bundles/<name>.zip`` (names only, never a free path)."""
+        manifest = export_bundle(self.root, run_ids, self._bundle_path(name))
+        return {"name": name, "path": f"bundles/{name}.zip", "content_sha256": manifest["content_sha256"],
+                "runs": manifest["runs"], "files": len(manifest["files"])}
+
+    def verify_research_bundle(self, name: str) -> dict[str, Any]:
+        return {"name": name, **verify_bundle(self._bundle_path(name))}
+
+    def describe(self) -> dict[str, Any]:
+        from .rpc import METHODS
+
+        return {"protocol_version": PROTOCOL_VERSION, "methods": sorted(METHODS),
+                "runner_policy": "any" if self.allowed_runner_modules is None else
+                ("allow-list" if self.allowed_runner_modules else "none"),
+                "requires_python_sidecar": True}
+
+    def _bundle_path(self, name: str) -> Path:
+        _validate_name(name, "bundle")
+        return self.root / "bundles" / f"{name}.zip"
+
+    def _check_runner(self, runner: str | None) -> None:
+        if runner is None or self.allowed_runner_modules is None:
+            return
+        module = runner.partition(":")[0]
+        if not any(module == m or module.startswith(m + ".") for m in self.allowed_runner_modules):
+            raise PermissionError(f"runner module {module!r} is not allow-listed for this bridge; "
+                                  "start it with --allow-runner-module to permit importing it")
 
     def _research_context(self, run_id: str) -> RunContext:
         try:
-            return self._research_contexts[run_id]
+            context = self._research_contexts[run_id]
         except KeyError as exc:
             raise KeyError(f"no open research run {run_id!r} in this SDK process") from exc
+        if not context.is_open:
+            self._research_contexts.pop(run_id, None)
+            raise EvidenceError(f"run {run_id} is closed")
+        return context

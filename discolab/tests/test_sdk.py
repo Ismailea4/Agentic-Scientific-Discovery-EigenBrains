@@ -63,57 +63,57 @@ def test_cross_language_parity_fixture_matches_authoritative_python():
     assert np.isclose(eig_bits(d["prior"], table), d["expected_information_gain_bits"], atol=1e-12)
 
 
-def test_protocol_schema_and_rpc_dispatch_expose_the_same_methods():
-    class RecordingClient:
-        def __getattr__(self, name):
-            return lambda *args, **kwargs: {"name": name, "args": args, "kwargs": kwargs}
+def test_protocol_schema_is_the_rpc_method_table():
+    from discolab.rpc import METHODS
 
-    cases = {
-        "initialize": {},
-        "state": {},
-        "events": {},
-        "propose": {"experiment": {}},
-        "score": {},
-        "select": {"experiment_id": "E1", "justification": "test"},
-        "run": {"confirm_heldout": False},
-        "abort": {"experiment_id": "E1", "reason": "test"},
-        "result": {"experiment_id": "E1"},
-        "analyze": {"experiment_id": "E1", "interpretation": "test"},
-        "decide": {"decision": "continue", "rationale": "test"},
-        "register_hypothesis": {
-            "hypothesis_id": "H1",
-            "statement": "test",
-            "h0": "null",
-            "family": "prediction",
-        },
-        "research.begin": {"spec": {}},
-        "research.emit": {"run_id": "RUN-X", "name": "data", "kind": "json", "value": {}, "schema": "data.v1"},
-        "research.metric": {"run_id": "RUN-X", "name": "loss", "value": 1.0},
-        "research.consume": {"run_id": "RUN-X", "evaluations": 1},
-        "research.finalize": {"run_id": "RUN-X"},
-        "research.inspect": {"run_id": "RUN-X"},
-        "research.validate": {"run_id": "RUN-X"},
-        "research.compare": {"left": "RUN-X", "right": "RUN-Y"},
-        "research.accept": {"run_id": "RUN-X", "rationale": "test"},
-        "research.reproduce": {"run_id": "RUN-X"},
-    }
     schema_path = Path(__file__).parents[2] / "sdk" / "protocol" / "v1" / "schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
-    declared = set(schema["$defs"]["request"]["properties"]["method"]["enum"])
-    assert set(cases) == declared
+    assert schema["$defs"]["request"]["properties"]["method"]["enum"] == list(METHODS)
+    for name, method in METHODS.items():
+        declared = schema["x-methods"][name]
+        assert declared == {"required": list(method.required), "optional": list(method.optional),
+                            "mutating": method.mutating}, name
 
-    client = RecordingClient()
-    expected_client_method = {
-        "research.begin": "begin_research_run",
-        "research.emit": "emit_research_artifact",
-        "research.metric": "record_research_metric",
-        "research.consume": "consume_research_budget",
-        "research.finalize": "finalize_research_run",
-        "research.inspect": "inspect_research_run",
-        "research.validate": "validate_research_run",
-        "research.compare": "compare_research_runs",
-        "research.accept": "accept_research_run",
-        "research.reproduce": "reproduce_research_run",
-    }
-    for method, params in cases.items():
-        assert dispatch(client, method, params)["name"] == expected_client_method.get(method, method)
+
+def test_every_rpc_method_reaches_an_existing_client_method():
+    from discolab.rpc import METHODS
+
+    class RecordingClient:
+        def __getattr__(self, name):
+            assert hasattr(DiscoveryLab, name), f"bridge calls DiscoveryLab.{name}, which does not exist"
+            return lambda *args, **kwargs: name
+
+    for name, method in METHODS.items():
+        params = {key: "x" for key in method.required}
+        if name == "register_hypothesis":
+            continue  # forwards **params to the real signature, exercised below
+        assert isinstance(dispatch(RecordingClient(), name, params), str), name
+
+
+def test_rpc_rejects_unknown_and_missing_params(tmp_path):
+    client = DiscoveryLab(tmp_path, actor="rpc-test")
+    missing = handle_request(client, {"id": 1, "version": "1.0", "method": "research.inspect", "params": {}})
+    assert missing["ok"] is False and "missing required params" in missing["error"]["message"]
+    typo = handle_request(client, {"id": 2, "version": "1.0", "method": "research.list",
+                                   "params": {"stauts": "validated"}})
+    assert typo["ok"] is False and "unknown params" in typo["error"]["message"]
+    listing = handle_request(client, {"id": 3, "version": "1.0", "method": "research.list", "params": None})
+    assert listing["ok"] is True and listing["result"] == []
+
+
+def test_contract_fixtures_are_generated_from_the_current_python_types():
+    import importlib.util
+
+    path = Path(__file__).parents[2] / "sdk" / "protocol" / "v1" / "generate_contract_fixtures.py"
+    spec = importlib.util.spec_from_file_location("generate_contract_fixtures", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # build() also asserts Python rejects every invalid case
+    assert path.with_name("contract-fixtures.json").read_text(encoding="utf-8") == module.render()
+
+
+def test_auroc_parity_fixture_matches_python():
+    from discolab.stats import auroc
+
+    fixture = json.loads((Path(__file__).parents[2] / "sdk" / "protocol" / "v1" / "parity-fixtures.json")
+                         .read_text(encoding="utf-8"))["auroc"]
+    assert auroc(np.array(fixture["scores"]), np.array(fixture["labels"])) == fixture["expected"]
