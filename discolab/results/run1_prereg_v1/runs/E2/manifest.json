@@ -1,0 +1,57 @@
+{
+  "id": "E2",
+  "spec": {
+    "kind": "prediction",
+    "title": "Dev: fitness-spread vs dispersion vs fitness-only (H2,H3)",
+    "rationale": "Tests two rival signals in one run (H2 genotypic dispersion, H3 genotype-free fitness spread), 12 seeds on dev landscapes. If spread helps as much as entropy, a cheaper genotype-free signal suffices; if neither helps, the information claim narrows to entropy. Efficient coverage of two uncertain hypotheses.",
+    "hypotheses": [
+      "H2",
+      "H3"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 12,
+    "feature_sets": [
+      "fitness",
+      "fitness+dispersion",
+      "fitness+spread"
+    ],
+    "controllers": null
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    200,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208,
+    209,
+    210,
+    211
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "93132876bba840128bcf68f5c90d1ef3ebc04ae2fb681389181234dc47d57d8f",
+  "code": {
+    "discolab_sha256": "462af6a143f278c59563bcc8c4bfa18d31e3d2301bcc50b774c4ca97745b7e72",
+    "git_commit": "af3f736d5ee0432a7baaa6d18dfbc53231cd5820",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "runtime_sec": 11.352503300000535,
+  "calibration_added": {}
+}
