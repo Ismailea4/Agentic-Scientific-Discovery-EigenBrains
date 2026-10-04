@@ -17,7 +17,8 @@ from . import lab
 from .experiments import n_workers
 from .features import FEATURE_SETS
 from .ledger import Ledger
-from .literature import TITLE_MATCH_MIN, fetch_arxiv, fetch_work, is_arxiv_id, search_arxiv, search_works, \n    title_similarity
+from .literature import (TITLE_MATCH_MIN, fetch_arxiv, fetch_work, is_arxiv_id, search_arxiv, search_works,
+                         title_similarity)
 from .prereg import load_prereg
 from .views import result_summary, state_summary
 
