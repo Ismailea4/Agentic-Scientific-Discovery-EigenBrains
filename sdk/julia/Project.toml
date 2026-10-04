@@ -1,0 +1,21 @@
+name = "EigenBrainsSDK"
+uuid = "4a8fb1f2-1d9e-4f45-9c62-14eb44de1f37"
+authors = ["EigenBrains"]
+version = "0.1.0"
+
+[deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39d95a9c7db8"
+
+[compat]
+Distributions = "0.25"
+FastGaussQuadrature = "1"
+JSON3 = "1"
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
