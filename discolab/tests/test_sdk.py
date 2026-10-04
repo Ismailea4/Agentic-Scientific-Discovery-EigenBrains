@@ -5,7 +5,7 @@ import numpy as np
 
 from discolab import DiscoveryLab, Experiment, PROTOCOL_VERSION
 from discolab.planner import eig_bits, likelihood_table
-from discolab.rpc import handle_request
+from discolab.rpc import dispatch, handle_request
 from discolab.stats import cvar, wilson
 from discolab.telemetry import population_entropy
 
@@ -61,3 +61,37 @@ def test_cross_language_parity_fixture_matches_authoritative_python():
     table = likelihood_table(d["effect_scale"], d["n"], d["sesoi"], d["alpha"])
     assert all(np.allclose(table[k], v, atol=1e-12) for k, v in d["likelihood_table"].items())
     assert np.isclose(eig_bits(d["prior"], table), d["expected_information_gain_bits"], atol=1e-12)
+
+
+def test_protocol_schema_and_rpc_dispatch_expose_the_same_methods():
+    class RecordingClient:
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: {"name": name, "args": args, "kwargs": kwargs}
+
+    cases = {
+        "initialize": {},
+        "state": {},
+        "events": {},
+        "propose": {"experiment": {}},
+        "score": {},
+        "select": {"experiment_id": "E1", "justification": "test"},
+        "run": {"confirm_heldout": False},
+        "abort": {"experiment_id": "E1", "reason": "test"},
+        "result": {"experiment_id": "E1"},
+        "analyze": {"experiment_id": "E1", "interpretation": "test"},
+        "decide": {"decision": "continue", "rationale": "test"},
+        "register_hypothesis": {
+            "hypothesis_id": "H1",
+            "statement": "test",
+            "h0": "null",
+            "family": "prediction",
+        },
+    }
+    schema_path = Path(__file__).parents[2] / "sdk" / "protocol" / "v1" / "schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    declared = set(schema["$defs"]["request"]["properties"]["method"]["enum"])
+    assert set(cases) == declared
+
+    client = RecordingClient()
+    for method, params in cases.items():
+        assert dispatch(client, method, params)["name"] == method

@@ -29,6 +29,10 @@ The bridge returns expected validation and transition failures as structured
 errors and stays alive. Invalid JSON also returns a structured error with a
 null request id. One input line always produces one output line.
 
+Rust exposes remote failures as `SdkError::Remote { code, message }`; Julia
+raises `ProtocolError(code, message)`. Both clients additionally reject response
+id/version mismatches and successful envelopes that omit `result`.
+
 ## Methods
 
 | Method | Required parameters | Mutation |
@@ -87,3 +91,7 @@ must pass [`parity-fixtures.json`](../sdk/protocol/v1/parity-fixtures.json)
 within its declared tolerance before their outputs may enter a scientific
 ledger. New fields may be added compatibly; removing or changing existing
 semantics requires a new protocol version.
+
+The language clients also run live bridge tests against a temporary Python lab.
+Those tests cover initialization, proposal, deterministic scoring, selection,
+state/event reads, and recovery from a structured remote error.

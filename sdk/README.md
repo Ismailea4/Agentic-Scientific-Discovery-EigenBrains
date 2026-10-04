@@ -45,7 +45,9 @@ python -m discolab.rpc --root lab_home/sdk-demo --actor external-sdk
 
 The process accepts one JSON request per line and emits one response per line.
 See [`protocol/v1/schema.json`](protocol/v1/schema.json). Rust and Julia clients
-start this bridge themselves and retain a persistent pipe.
+Both clients expose all protocol-v1 lifecycle methods and retain the remote
+error code and message so callers can distinguish validation, transition, and
+transport failures.
 
 ## Language responsibilities
 
@@ -60,3 +62,17 @@ start this bridge themselves and retain a persistent pipe.
 authoritative Python outputs for Rust/Julia numerical-parity tests. Performance
 benchmarks are the next engineering step. No speed claim should be published
 until the Rust kernels are benchmarked on the same inputs and machine.
+
+## Verification
+
+```bash
+cd discolab
+python -m pytest -q
+cd ..
+cargo test --manifest-path sdk/rust/eigenbrains-sdk/Cargo.toml
+julia --project=sdk/julia -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
+```
+
+The Rust and Julia suites each start a real Python bridge in a temporary lab,
+exercise validated lifecycle transitions, and confirm that a rejected method
+returns a structured error without terminating the persistent session.
