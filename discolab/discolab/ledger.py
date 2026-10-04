@@ -34,6 +34,7 @@ EVENT_TYPES = (
     "experiments_scored",
     "experiment_selected",
     "experiment_completed",
+    "experiment_failed",
     "analysis_recorded",
     "hypothesis_updated",
     "decision_recorded",
@@ -45,7 +46,9 @@ class LedgerError(RuntimeError):
 
 
 def file_sha256(path: Path) -> str:
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    """SHA-256 of a text file with line endings normalised to LF, so the same
+    committed file hashes identically on Windows (CRLF checkout) and POSIX."""
+    return hashlib.sha256(Path(path).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 @contextmanager
@@ -181,6 +184,8 @@ def _apply(s: dict, ev: dict) -> None:
         row = next((r for r in last["scores"] if r["id"] == eid), None)
         _need(row is not None, f"{eid} was not scored in the latest round")
         _need(row["feasible"], f"{eid} is infeasible: {row.get('violations')}")
+        _need(s["candidates"][eid]["status"] == "scored",
+              f"{eid} is {s['candidates'][eid]['status']}; only scored candidates can be selected")
         s["selected"] = eid
         s["candidates"][eid]["status"] = "selected"
         s["decisions"].append({"kind": "selection", "seq": ev["seq"], "by": ev["actor"], **p})
@@ -196,6 +201,15 @@ def _apply(s: dict, ev: dict) -> None:
         s["calibration"].update(p.get("calibration", {}))
         s["selected"] = None
         s["completed"].append(eid)
+    elif t == "experiment_failed":
+        # A crashed or aborted run releases the selection; its id is never reused
+        # (artifacts are immutable), so a retry must be proposed afresh.
+        eid = p["id"]
+        _need(s["selected"] == eid, f"{eid} is not the selected experiment")
+        c = s["candidates"][eid]
+        c["status"] = "failed"
+        c["error"] = p["error"]
+        s["selected"] = None
     elif t == "analysis_recorded":
         eid = p["id"]
         _need(eid in s["completed"], f"{eid} has not completed")
