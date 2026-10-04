@@ -1,0 +1,47 @@
+# Acceleration study protocol — frozen before the study is run.
+# Question: how much less simulation compute does the lab's sequential,
+# information-gain-per-cost experiment selection need to reach its
+# conclusions than a conventional strategy that tests every hypothesis once at
+# full size — and do the two reach the same conclusions as a large-sample
+# reference?
+version: 1
+frozen_on: "2026-10-04"
+base_prereg: prereg.yaml (v3) — hypotheses, analysis, decision rules and planner policy unchanged
+
+hypotheses: [H1, H2, H3, H5, H4, H6, H7]    # all development-stage tests
+stage: development
+
+strategies:
+  sweep: >-
+    Conventional design: every hypothesis is tested once, in a fixed order, at
+    the largest size (24 seeds). No early stopping, no reallocation.
+  lab: >-
+    The lab's planner: a menu of designs (each hypothesis at 6, 12 or 24 seeds)
+    is proposed up front; each step runs the feasible utility argmax, applies
+    the pre-registered belief update, and re-scores. Stops when every
+    hypothesis has a decided status or no candidate has utility above 0.01 bits.
+    No LLM is involved: this isolates the deterministic selection machinery.
+
+reference: >-
+  each hypothesis tested once at 48 seeds on its own seed block; its verdict
+  (supported / inconclusive / refuted) is the reference conclusion.
+
+agreement: >-
+  a hypothesis agrees when the strategy's final status matches the reference
+  verdict (supported<->supported, refuted<->refuted, open<->inconclusive).
+  Disagreements are reported individually (no partial credit).
+
+compute_measure:
+  primary: simulated GA generations (machine-independent; risk-model fitting and calibration runs included)
+  secondary: wall-clock seconds on the recording machine
+
+replicates: 5
+seeds: >-
+  replicate r uses development seeds 100000 + 20000*r onward (sweep) and
+  110000 + 20000*r onward (lab); the reference uses 300000 onward. None of
+  these overlap the prereg blocks or each other.
+acceleration: compute(sweep) / compute(lab) per replicate; mean with a bootstrap 95% CI over replicates
+reporting: >-
+  report the ratio together with agreement for both strategies; a speed-up
+  that loses agreement is reported as such, not as acceleration.
+budget_seconds: 100000   # effectively unbounded; cost enters only through the utility

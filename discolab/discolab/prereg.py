@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -13,9 +14,15 @@ from .ledger import file_sha256
 PREREG_PATH = Path(__file__).resolve().parent.parent / "prereg.yaml"
 
 
-@lru_cache(maxsize=4)
 def load_prereg(path: str | None = None) -> dict:
-    p = Path(path) if path else PREREG_PATH
+    """The active pre-registration: explicit path, else $DISCOLAB_PREREG (used by
+    the acceleration study's derived protocols), else prereg.yaml."""
+    return _load(str(Path(path or os.environ.get("DISCOLAB_PREREG") or PREREG_PATH).resolve()))
+
+
+@lru_cache(maxsize=16)
+def _load(path: str) -> dict:
+    p = Path(path)
     data = yaml.safe_load(p.read_text(encoding="utf-8"))
     dev = set(data["landscapes"]["development"])
     held = set(data["landscapes"]["held_out"])
