@@ -83,11 +83,14 @@ def propose_experiment(kind: str, title: str, rationale: str, hypotheses: list[s
 @mcp.tool()
 def score_experiments() -> dict:
     """Score every open candidate: expected information gain (bits), estimated
-    compute cost, held-out penalty, utility, and hard-constraint feasibility."""
+    compute cost, held-out penalty, utility, and hard-constraint feasibility.
+    Also returns the research portfolio: up to 3 experiments chosen greedily for
+    their JOINT information after redundancy (experiments testing the same
+    hypothesis overlap), with each step's marginal gain."""
     out = lab.score_experiments(_actor())
     keep = ("id", "title", "kind", "stage", "eig_bits", "cost_penalty_bits", "heldout_penalty_bits",
             "utility", "feasible", "violations", "hypotheses")
-    return {"argmax": out["argmax"],
+    return {"argmax": out["argmax"], "portfolio": out["portfolio"],
             "scores": [{k: r[k] for k in keep} | {"est_wall_seconds": r["cost"]["wall_seconds"]}
                        for r in out["scores"]]}
 

@@ -38,9 +38,18 @@ continue that same task.
    concrete scientific reason not to; your justification must cite the expected
    information gain (bits), estimated cost, feasibility, and what the result could
    change. If you override the argmax, say exactly why.
+   The scoring also returns a research portfolio: up to 3 experiments chosen for
+   their JOINT information after redundancy (two tests of the same hypothesis
+   overlap). If the portfolio holds experiments on DIFFERENT hypotheses, you may
+   run them back-to-back this round: select and run the first, then select and
+   run the next (cite "portfolio item" and its marginal gain in the
+   justification). Never run two portfolio items that test the same hypothesis
+   without re-scoring in between.
 4. Call run_experiment. If it requires human approval (confirmatory runs on
    held-out landscapes), explain to the human what is being spent and why.
-5. Dispatch `critic` (title `critique-E<id>`) with the experiment id.
+5. Dispatch `critic` (title `critique-E<id>`) with the experiment id. When you ran
+   several portfolio experiments, dispatch one critic per experiment in the same
+   turn so they analyse in parallel.
 6. When the critic reports, call get_research_state, then record_decision:
    what the lab now believes (quote posteriors before -> after), what changed,
    and which question to investigate next and why. If the result surprised you,

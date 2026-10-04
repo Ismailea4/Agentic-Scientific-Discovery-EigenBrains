@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import math
 import statistics
+from itertools import product
 
 import numpy as np
 from scipy.stats import norm
@@ -221,6 +222,75 @@ def score_candidates(state: dict, prereg: dict) -> list[dict]:
         })
     rows.sort(key=lambda r: (not r["feasible"], -r["utility"]))
     return rows
+
+
+# --------------------------------------------------------------- portfolio
+def joint_information(q: float, tables: list) -> float:
+    """I(h; O_1..O_m) in bits for m experiments testing the same hypothesis.
+
+    Experiments run on disjoint seed blocks, so their verdicts are conditionally
+    independent given the hypothesis. The joint information is then exact and
+    is less than the sum of the individual EIGs whenever experiments overlap:
+    the diminishing return is the redundancy (covariance) between them.
+    """
+    if not tables:
+        return 0.0
+    remaining = 0.0
+    for combo in product(VERDICTS, repeat=len(tables)):
+        l1 = math.prod(t[o][0] for t, o in zip(tables, combo))
+        l0 = math.prod(t[o][1] for t, o in zip(tables, combo))
+        po = q * l1 + (1 - q) * l0
+        if po > 0:
+            remaining += po * entropy_bits(q * l1 / po)
+    return entropy_bits(q) - remaining
+
+
+def research_portfolio(rows: list[dict], remaining_budget: float, prereg: dict) -> dict:
+    """Greedy redundancy-aware selection of up to k experiments for one round.
+
+    Value of a set = sum over hypotheses of the joint information of the
+    experiments testing it, minus their cost and held-out penalties. Joint
+    information is submodular here, so greedy marginal-gain selection has the
+    standard (1 - 1/e) guarantee. Hard constraints apply: only feasible rows,
+    within the remaining compute budget.
+    """
+    pol = prereg["planner_policy"]["portfolio"]
+    alpha = prereg["decision_rules"]["alpha"]
+
+    def value(chosen: list[dict]) -> tuple[float, float]:
+        by_h: dict[str, tuple[float, list]] = {}
+        for r in chosen:
+            for hid, ph in r["hypotheses"].items():
+                table = likelihood_table(ph["assumed_effect"], ph["n_units"], ph["sesoi_std"], alpha)
+                by_h.setdefault(hid, (ph["prior"], []))[1].append(table)
+        info = sum(joint_information(q, ts) for q, ts in by_h.values())
+        penalty = sum(r["cost_penalty_bits"] + r["heldout_penalty_bits"] for r in chosen)
+        return info, penalty
+
+    chosen: list[dict] = []
+    steps = []
+    spent = 0.0
+    while len(chosen) < pol["max_experiments"]:
+        base_info, base_pen = value(chosen)
+        best = None
+        for r in rows:
+            if not r["feasible"] or r in chosen or spent + r["cost"]["wall_seconds"] > remaining_budget:
+                continue
+            info, pen = value(chosen + [r])
+            gain = (info - base_info) - (pen - base_pen)
+            if best is None or gain > best[0]:
+                best = (gain, r, info - base_info)
+        if best is None or best[0] < pol["min_marginal_utility_bits"]:
+            break
+        chosen.append(best[1])
+        spent += best[1]["cost"]["wall_seconds"]
+        steps.append({"id": best[1]["id"], "marginal_utility_bits": round(best[0], 4),
+                      "marginal_eig_bits": round(best[2], 4), "standalone_eig_bits": best[1]["eig_bits"]})
+    info, _ = value(chosen)
+    standalone = sum(r["eig_bits"] for r in chosen)
+    return {"ids": [r["id"] for r in chosen], "steps": steps, "joint_eig_bits": round(info, 4),
+            "sum_standalone_eig_bits": round(standalone, 4), "redundancy_bits": round(standalone - info, 4),
+            "est_wall_seconds": round(spent, 2)}
 
 
 def belief_updates(state: dict, prereg: dict, exp_id: str) -> list[dict]:

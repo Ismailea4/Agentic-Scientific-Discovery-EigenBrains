@@ -1,10 +1,29 @@
 # discolab pre-registration — frozen before any confirmatory or comparative run.
 # Changing anything below after the first experiment requires a new prereg
 # version; the ledger records the SHA-256 of this file with every event.
-version: 3
+version: 4
 frozen_on: "2026-10-04"
 
 changelog:
+  - version: 4
+    date: "2026-10-04"
+    reason: >-
+      Additions only; nothing earlier changes. Run 2's failure-dependence
+      analysis (EigenBrains covariance layer) found that the entropy-risk
+      controller and the rate-matched fixed rate fail on largely different runs,
+      motivating a combined controller (B5) and hypothesis H8, registered here
+      before any test. The planner also proposes a research portfolio per round.
+    deviations:
+      - >-
+        New controller variant B5_hybrid (rate-matched base 0.8/d, burst to
+        p_max for 5 generations on a rising edge of predicted risk >= 0.5;
+        risk model on fitness+entropy, fitted on fresh development seeds) and
+        hypothesis H8.
+      - >-
+        Research portfolio: each scoring round also reports up to 3 experiments
+        chosen greedily by marginal joint information (exact for conditionally
+        independent verdicts) minus cost and held-out penalties. Selection of an
+        individual experiment and every analysis rule are unchanged.
   - version: 3
     date: "2026-10-04"
     reason: >-
@@ -132,6 +151,17 @@ hypotheses:
     controller: B3d_predictive
     comparator: best_baseline
     prior_rule: {depends_on: H2, if_true: 0.5, if_false: 0.1}
+  - id: H8
+    origin: run2-analysis (failure dependence between B3 and the rate-matched rate)
+    family: control
+    statement: >-
+      A hybrid controller that keeps the rate-matched base rate 0.8/d and adds
+      predicted-stagnation bursts (B5) recovers faster than the rate-matched
+      fixed rate alone, i.e. predictive timing adds value on top of the rate.
+    h0: B5 is no faster than the rate-matched fixed controller.
+    controller: B5_hybrid
+    comparator: B0_fixed_x0.8
+    prior_rule: {depends_on: H1, if_true: 0.5, if_false: 0.1}
 
 landscapes:
   development: [rastrigin, ackley]
@@ -182,6 +212,7 @@ control_study:
   controllers: [B0_fixed, B1_stall, B2_entropy, B3_predictive, B4a_hypermutation, B4b_immigrants]
   controller_variants:
     B3d_predictive: B3 with a risk model on fitness+dispersion
+    B5_hybrid: base 0.8/d; burst to p_max for 5 generations when predicted risk crosses 0.5 (rising edge)
     B0_fixed_x<m>: fixed rate m/d, 0.25 <= m <= 4 (rate-matched controls)
   risk_models: logistic on the variant's feature set, fitted on fresh development seeds only, then frozen
   recovery_target: >-
@@ -233,6 +264,11 @@ planner_policy:   # deterministic experiment selection (EigenBrains constrained 
     - EIG of an experiment is the sum over the hypotheses it tests (treated as independent)
     - an untested hypothesis with a prior_rule takes its prior from its parent's current posterior
   compute_budget_seconds: 1800
+  portfolio:
+    max_experiments: 3
+    min_marginal_utility_bits: 0.01
+    value: sum over hypotheses of exact joint information of the experiments testing it, minus penalties
+    selection: greedy by marginal value (submodular objective; (1 - 1/e) guarantee)
 
 claims_policy:
   - Results are reported whatever their direction; refuted hypotheses stay in the record.

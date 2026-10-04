@@ -91,3 +91,37 @@ def test_inconclusive_weighs_more_with_larger_designs_but_refuted_is_decisive():
     small, large = likelihood_table(0.5, 24, 0.2, ALPHA), likelihood_table(0.5, 120, 0.2, ALPHA)
     assert posterior(0.5, "inconclusive", large) < posterior(0.5, "inconclusive", small) < 0.5
     assert posterior(0.5, "refuted", small) < 0.1 and posterior(0.5, "supported", small) > 0.9
+
+
+def test_joint_information_has_diminishing_returns_for_overlapping_experiments():
+    from discolab.planner import joint_information
+    t = likelihood_table(0.5, 24, 0.2, ALPHA)
+    one = joint_information(0.5, [t])
+    two = joint_information(0.5, [t, t])
+    assert joint_information(0.5, []) == 0.0
+    assert one == pytest.approx(eig_bits(0.5, t))
+    assert one < two < 2 * one <= 2 * entropy_bits(0.5)
+
+
+def _row(eid, hid, eig_effect=0.5, n=24, cost=10.0):
+    return {"id": eid, "feasible": True, "eig_bits": eig_bits(0.5, likelihood_table(eig_effect, n, 0.2, ALPHA)),
+            "cost": {"wall_seconds": cost}, "cost_penalty_bits": 0.001667 * cost, "heldout_penalty_bits": 0.0,
+            "hypotheses": {hid: {"prior": 0.5, "assumed_effect": eig_effect, "n_units": n, "sesoi_std": 0.2}}}
+
+
+def test_portfolio_prefers_diverse_experiments_over_redundant_ones():
+    from discolab.planner import research_portfolio
+    pr = load_prereg()
+    rows = [_row("E1", "H1"), _row("E2", "H1", n=26), _row("E3", "H2", n=22)]
+    pf = research_portfolio(rows, 1000.0, pr)
+    assert set(pf["ids"][:2]) in ({"E1", "E3"}, {"E2", "E3"})  # never two H1 tests before covering H2
+    assert pf["redundancy_bits"] >= 0
+    assert pf["joint_eig_bits"] <= pf["sum_standalone_eig_bits"] + 1e-9
+
+
+def test_portfolio_respects_budget_and_feasibility():
+    from discolab.planner import research_portfolio
+    pr = load_prereg()
+    rows = [_row("E1", "H1", cost=50.0), {**_row("E2", "H2"), "feasible": False}, _row("E3", "H3", cost=5.0)]
+    pf = research_portfolio(rows, 20.0, pr)
+    assert pf["ids"] == ["E3"]

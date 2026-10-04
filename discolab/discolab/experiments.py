@@ -100,7 +100,8 @@ def validate_spec(spec: ExperimentSpec, prereg: dict, hypotheses: dict[str, dict
 
 
 # Predictive (B3-family) controllers and the feature set their frozen risk model uses.
-PREDICTIVE_VARIANTS = {"B3_predictive": "fitness+entropy", "B3d_predictive": "fitness+dispersion"}
+PREDICTIVE_VARIANTS = {"B3_predictive": "fitness+entropy", "B3d_predictive": "fitness+dispersion",
+                       "B5_hybrid": "fitness+entropy"}
 
 
 def is_known_controller(name: str) -> bool:
@@ -176,7 +177,7 @@ def _simulate(task: dict) -> tuple[dict, dict]:
     if task["controller"] in PREDICTIVE_VARIANTS:
         if model is None:
             raise ValueError(f"{task['controller']} needs its fitted risk model")
-        ctrl = C.Predictive(model)
+        ctrl = C.HybridPredictive(model) if task["controller"] == "B5_hybrid" else C.Predictive(model)
     else:
         ctrl = C.make_controller(task["controller"])
     tr = run_ga(L, sch, ctrl, cfg, task["n_epochs"] * task["period"], task["seed"])

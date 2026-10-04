@@ -36,8 +36,11 @@ prompt: |
      A prediction experiment must include each tested hypothesis's feature_set
      AND its baseline_feature_set; a control experiment must include each tested
      hypothesis's controller AND its comparator (when not best_baseline).
-     Controller variants: B3d_predictive (dispersion risk model) and
-     rate-matched fixed rates B0_fixed_x<m> (e.g. B0_fixed_x0.8).
+     Controller variants: B3d_predictive (dispersion risk model), B5_hybrid
+     (rate-matched base 0.8/d plus predicted-stagnation bursts; tests H8 against
+     B0_fixed_x0.8) and rate-matched fixed rates B0_fixed_x<m> (e.g. B0_fixed_x0.8).
+     Prefer candidates on different hypotheses: the planner's portfolio rewards
+     joint information, so near-duplicate designs add little.
   3. If a completed result suggests a new testable hypothesis, you may register
      it (it is labelled as agent-generated) before proposing a test for it. It
      must be testable as written: name an existing feature_set and

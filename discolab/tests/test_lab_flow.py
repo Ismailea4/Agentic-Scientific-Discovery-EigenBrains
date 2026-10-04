@@ -133,3 +133,14 @@ def test_coupling_never_decides_status(tmp_path):
     upd = lab.record_analysis("E1", "interpretation", [], "critic", tmp_path)
     coupled = [u for u in upd["updates"] if u["experiment"] is None]
     assert coupled and all(u["status"] == "open" for u in coupled)
+
+
+def test_scoring_returns_a_portfolio_and_selection_records_membership(tmp_path):
+    lab.init_lab(tmp_path)
+    lab.propose_experiment(PRED, "designer", tmp_path)
+    lab.propose_experiment({**PRED, "title": "Dev-stage dispersion prediction test", "hypotheses": ["H2"],
+                            "feature_sets": ["fitness", "fitness+dispersion"]}, "designer", tmp_path)
+    out = lab.score_experiments("designer", tmp_path)
+    assert set(out["portfolio"]["ids"]) == {"E1", "E2"}  # different hypotheses: both worth running
+    sel = lab.select_experiment(out["portfolio"]["ids"][1], "second portfolio item", "pi", tmp_path)
+    assert sel["in_portfolio"] is True

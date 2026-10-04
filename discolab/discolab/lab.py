@@ -14,7 +14,7 @@ from .experiments import ExperimentSpec, estimate_cost, is_known_controller, mea
     run_experiment, run_plan, validate_spec
 from .features import FEATURE_SETS
 from .ledger import Ledger, LedgerError, public_state
-from .planner import belief_updates, score_candidates
+from .planner import belief_updates, research_portfolio, score_candidates
 from .prereg import load_prereg
 
 
@@ -71,12 +71,16 @@ def propose_experiment(spec: dict, actor: str, root: Path | None = None) -> dict
 
 def score_experiments(actor: str, root: Path | None = None) -> dict:
     led = _ledger(root)
-    rows = score_candidates(led.state(), load_prereg())
+    state = led.state()
+    pr = load_prereg()
+    rows = score_candidates(state, pr)
     if not rows:
         raise LedgerError("no open candidate experiments to score")
     feasible = [r for r in rows if r["feasible"]]
-    led.append("experiments_scored", {"scores": rows, "argmax": feasible[0]["id"] if feasible else None}, actor)
-    return {"argmax": feasible[0]["id"] if feasible else None, "scores": rows}
+    portfolio = research_portfolio(rows, state["compute_budget_sec"] - state["compute_used_sec"], pr)
+    argmax = feasible[0]["id"] if feasible else None
+    led.append("experiments_scored", {"scores": rows, "argmax": argmax, "portfolio": portfolio}, actor)
+    return {"argmax": argmax, "scores": rows, "portfolio": portfolio}
 
 
 def select_experiment(exp_id: str, justification: str, actor: str, root: Path | None = None) -> dict:
@@ -84,10 +88,12 @@ def select_experiment(exp_id: str, justification: str, actor: str, root: Path | 
     state = led.state()
     if not state["scoring_rounds"]:
         raise LedgerError("score candidates before selecting")
-    argmax = state["scoring_rounds"][-1]["argmax"]
+    last = state["scoring_rounds"][-1]
+    argmax = last["argmax"]
+    in_portfolio = exp_id in (last.get("portfolio") or {}).get("ids", [])
     led.append("experiment_selected", {"id": exp_id, "argmax": argmax, "followed_argmax": exp_id == argmax,
-                                       "justification": justification}, actor)
-    return {"selected": exp_id, "argmax": argmax, "followed_argmax": exp_id == argmax}
+                                       "in_portfolio": in_portfolio, "justification": justification}, actor)
+    return {"selected": exp_id, "argmax": argmax, "followed_argmax": exp_id == argmax, "in_portfolio": in_portfolio}
 
 
 def run_selected_experiment(actor: str, root: Path | None = None) -> dict:
