@@ -79,13 +79,18 @@ def result_summary(cand: dict) -> dict:
                                    "cvar90_recovery_gens": _r(v["cvar90_recovery_gens"], 2),
                                    "mean_p_mut": _r(v["mean_p_mut"], 4)}
                                for c, v in res["per_controller"].items()},
-            "vs_B0": {c: {"delta_rmst_gens": _ci(v["delta_rmst_gens"]),
-                          "delta_recovery_rate": _ci(v["delta_recovery_rate"]),
+            "sign_conventions": {
+                "rmst_controller_minus_comparator_gens": "controller RMST - comparator RMST; NEGATIVE = controller recovers faster",
+                "verdict_effect": "RMST REDUCTION (comparator - controller); POSITIVE = controller recovers faster",
+                "recovery_rate_controller_minus_B0": "POSITIVE = controller recovers more often",
+            },
+            "vs_B0": {c: {"rmst_controller_minus_comparator_gens": _ci(v["delta_rmst_gens"]),
+                          "recovery_rate_controller_minus_B0": _ci(v["delta_recovery_rate"]),
                           "holm_reject": v.get("holm_reject"), "rescue_damage": v["rescue_damage"],
                           "mcnemar_p_descriptive": _r(v["mcnemar_p_descriptive"])}
                       for c, v in res["vs_B0"].items()},
             "hypothesis_contrasts": {h: {"controller": v["controller"], "comparator": v["comparator"],
-                                         "delta_rmst_gens": _ci(v["delta_rmst_gens"])}
+                                         "rmst_controller_minus_comparator_gens": _ci(v["delta_rmst_gens"])}
                                      for h, v in res["contrasts"].items()},
             "risk_models": {k: {"feature_set": v["feature_set"], "n_fit_runs": v["n_fit_runs"]}
                             for k, v in (res.get("risk_models") or {}).items()},
