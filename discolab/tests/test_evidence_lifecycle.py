@@ -394,3 +394,23 @@ def test_rpc_checkpoint_resume_across_bridge_processes_and_client_failure(tmp_pa
     assert _rpc(second, "research.emit", run_id=other, name="steps", kind="table", value=[],
                 schema=STEPS.id)["error"]["code"] == "KeyError"
     assert np.isclose(EvidenceStore(tmp_path).inspect(run_id)["metrics"]["total"]["value"], 0.5)
+
+
+def test_absolute_input_paths_inside_the_working_directory_are_recorded_relative(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    data = tmp_path / "inputs" / "data.txt"
+    data.parent.mkdir()
+    data.write_text("v1", encoding="utf-8")
+    outside = tmp_path.parent / f"{tmp_path.name}-outside.txt"
+    outside.write_text("x", encoding="utf-8")
+    try:
+        spec = _spec(inputs={"inside": str(data.resolve()), "outside": str(outside.resolve())})
+        assert spec.inputs["inside"] == "inputs/data.txt"
+        assert spec.inputs["outside"] == str(outside.resolve())  # kept: it must stay locatable
+        context = EvidenceStore(tmp_path / "store").begin(_spec(inputs={"inside": str(data.resolve())}))
+        recorded = json.loads((context.run_dir / "spec.json").read_text(encoding="utf-8"))
+        assert recorded["inputs"] == {"inside": "inputs/data.txt"}
+        context.checkpoint()
+        assert EvidenceStore(tmp_path / "store").resume(context.run_id).resumed_from == 1
+    finally:
+        outside.unlink()

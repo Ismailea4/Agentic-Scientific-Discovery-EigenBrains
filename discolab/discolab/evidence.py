@@ -219,6 +219,9 @@ class ExperimentSpecV2:
             raise ValueError("output schema ids must be unique")
         for name in self.inputs:
             _validate_name(name, "input")
+        # Absolute input paths inside the working directory are stored relative to it,
+        # so specs (and the bundles that seal them) never publish local machine paths.
+        object.__setattr__(self, "inputs", {k: _portable_input(v) for k, v in dict(self.inputs).items()})
         _canonical_json(dict(self.parameters))
 
     def to_dict(self) -> dict[str, Any]:
@@ -309,6 +312,19 @@ def _to_unix_ns(value: Any) -> int:
             value = value.replace(tzinfo=timezone.utc)
         return (value - _EPOCH) // timedelta(microseconds=1) * 1000
     raise ValueError(f"unsupported time value {value!r}")
+
+
+def _portable_input(value: str | Path) -> str:
+    """An input path as it should be recorded in a spec: relative to the working
+    directory when it lies inside it; otherwise unchanged, because the file must
+    still be locatable to re-hash it on reproduce and resume."""
+    path = Path(value)
+    if not path.is_absolute():
+        return str(value)
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except (ValueError, OSError):
+        return str(value)
 
 
 def _portable_path(value: str | Path) -> str:
@@ -1228,8 +1244,9 @@ def resume_context(root: str | Path, run_id: str, spec: ExperimentSpecV2 | None 
     if problems:
         raise ValidationError(f"cannot resume corrupted run {run_id}: " + "; ".join(problems))
     recorded = ExperimentSpecV2.from_dict(json.loads((run_dir / "spec.json").read_text(encoding="utf-8")))
-    if spec is not None and spec.sha256 != recorded.sha256:
-        raise EvidenceError(f"incompatible spec: run {run_id} was started with spec {recorded.sha256[:12]}, "
+    recorded_sha = _sha256_file(run_dir / "spec.json")  # the file as written, independent of normalisation
+    if spec is not None and spec.sha256 != recorded_sha:
+        raise EvidenceError(f"incompatible spec: run {run_id} was started with spec {recorded_sha[:12]}, "
                             f"resume was given {spec.sha256[:12]}")
     checkpoints = [i for i, e in enumerate(events) if e["type"] == "checkpoint_written"]
     if not checkpoints:
@@ -1241,7 +1258,7 @@ def resume_context(root: str | Path, run_id: str, spec: ExperimentSpecV2 | None 
     info = events[last]["payload"]
     record = json.loads((run_dir / info["path"]).read_text(encoding="utf-8"))
     if (record.get("format") != CHECKPOINT_FORMAT or record.get("run_id") != run_id
-            or record.get("sequence") != info["sequence"] or record.get("spec_sha256") != recorded.sha256):
+            or record.get("sequence") != info["sequence"] or record.get("spec_sha256") != recorded_sha):
         raise ValidationError(f"checkpoint {info['sequence']} of run {run_id} does not belong to this run/spec")
     incompatible = _compatibility_errors(recorded.to_dict(), _read_json(run_dir / "provenance.json", {}))
     if incompatible:
