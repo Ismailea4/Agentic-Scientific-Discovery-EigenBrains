@@ -66,11 +66,12 @@ export const api = {
     return request<T>(path, { ...init, method: 'GET' });
   },
   post<T>(path: string, data?: unknown, init?: RequestInit): Promise<T> {
-    return request<T>(path, {
+    const requestInit: RequestInit = {
       ...init,
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...init?.headers },
-      body: data !== undefined ? JSON.stringify(data) : undefined,
-    });
+    };
+    if (data !== undefined) requestInit.body = JSON.stringify(data);
+    return request<T>(path, requestInit);
   },
 };

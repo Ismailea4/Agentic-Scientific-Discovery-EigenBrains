@@ -87,10 +87,9 @@ export function Tooltip({ children }: { children: ReactNode }) {
 export function TooltipTrigger({ children }: { children: ReactElement<TriggerProps> }) {
   const ctx = useContext(TooltipContext);
   if (!ctx || !isValidElement(children)) return children;
-  const childRef = (children as ReactElement<TriggerProps> & { ref?: Ref<HTMLElement> }).ref;
-  return cloneElement(children, {
+  const childRef = children.props.ref;
+  const triggerProps: TriggerProps = {
     ref: mergeRefs(childRef, ctx.anchorRef),
-    'aria-describedby': ctx.open ? ctx.tipId : undefined,
     onMouseEnter: (event: ReactMouseEvent<HTMLElement>) => {
       children.props.onMouseEnter?.(event);
       ctx.arm();
@@ -107,7 +106,9 @@ export function TooltipTrigger({ children }: { children: ReactElement<TriggerPro
       children.props.onBlur?.(event);
       ctx.disarm();
     },
-  });
+  };
+  if (ctx.open) triggerProps['aria-describedby'] = ctx.tipId;
+  return cloneElement(children, triggerProps);
 }
 
 export function TooltipContent({ children, shortcut }: { children: ReactNode; shortcut?: string }) {

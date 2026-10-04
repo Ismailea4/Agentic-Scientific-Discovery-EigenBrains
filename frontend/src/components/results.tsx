@@ -18,10 +18,10 @@ export function ExecutionSummary({
       <p className="eyebrow">Run</p>
       <strong>{task}</strong>
       <dl className="kv">
-        <div><dt>Architecture</dt><dd>{architecture}</dd></div>
-        <div><dt>Agents</dt><dd>{agents.join(' · ')}</dd></div>
-        {quality && <div><dt>Quality</dt><dd>{quality}</dd></div>}
-        {risk && <div><dt>Risk</dt><dd>{risk}</dd></div>}
+        <div><dt>Discovery plan</dt><dd>{architecture}</dd></div>
+        <div><dt>Specialists</dt><dd>{agents.join(' · ')}</dd></div>
+        {quality && <div><dt>Confidence</dt><dd>{quality}</dd></div>}
+        {risk && <div><dt>Uncertainty</dt><dd>{risk}</dd></div>}
       </dl>
     </div>
   );

@@ -15,16 +15,18 @@ import { useGet, type GetState } from './hooks/useGet';
 import { useHashView, type AppView } from './hooks/useHashView';
 import { useQuietMotion } from './hooks/useQuietMotion';
 import { Home } from './views/Home';
+import neosisLogo from './assets/logo_neosis.png';
 
 const NAV: { id: AppView; label: string; icon: typeof IconHome; reveal: number }[] = [
   { id: 'home', label: 'Home', icon: IconHome, reveal: 0 },
-  { id: 'agents', label: 'Agents', icon: IconShowcase, reveal: 2 },
-  { id: 'estimation', label: 'Estimation', icon: IconEstimate, reveal: 3 },
-  { id: 'security', label: 'Security', icon: IconSecurity, reveal: 4 },
-  { id: 'trace', label: 'Trace', icon: IconStream, reveal: 5 },
+  { id: 'agents', label: 'Discovery Loop', icon: IconShowcase, reveal: 1 },
+  { id: 'estimation', label: 'Hypotheses', icon: IconEstimate, reveal: 2 },
+  { id: 'security', label: 'Human Approval Gate', icon: IconSecurity, reveal: 3 },
+  { id: 'trace', label: 'Research Record', icon: IconStream, reveal: 4 },
 ];
 
 function readTheme(): ThemeChoice {
+  if (typeof window === 'undefined') return 'dark';
   const stored = window.localStorage.getItem('eb-theme');
   return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'dark';
 }
@@ -33,7 +35,7 @@ export default function App() {
   const [view, navigate] = useHashView();
   const quietMotion = useQuietMotion();
   const health = useGet<HealthStatus>('/health');
-  const [theme, setTheme] = useState<ThemeChoice>(readTheme);
+  const [theme, setTheme] = useState<ThemeChoice>('dark');
   const [inspector, setInspector] = useState<ReactNode>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -44,8 +46,12 @@ export default function App() {
   const isStory = view === 'home' && !quietMotion;
 
   useEffect(() => {
-    if (theme === 'system') delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = theme;
+    setTheme(readTheme());
+  }, []);
+
+  useEffect(() => {
+    if (theme === 'system') delete document.documentElement.dataset['theme'];
+    else document.documentElement.dataset['theme'] = theme;
     window.localStorage.setItem('eb-theme', theme);
   }, [theme]);
 
@@ -105,14 +111,14 @@ export default function App() {
     setTheme,
   }), [go, inspectorOpen, theme, view]);
 
-  const commandDocked = view !== 'home' || quietMotion || storyChapter >= 6;
+  const commandDocked = view !== 'home' || quietMotion || storyChapter >= 5;
 
   return (
     <ShellProvider value={shell}>
       <div className={isStory ? 'app-frame is-story' : 'app-frame'} data-chapter={isStory ? storyChapter : undefined}>
         <a className="skip" href="#workspace">Skip to workspace</a>
         <aside className="sidebar material-side">
-          <div className="brand"><span className="brand-mark" aria-hidden="true" /><strong>EigenBrains</strong></div>
+          <div className="brand"><span className="brand-mark"><img src={neosisLogo} alt="" /></span><strong>Noesis</strong></div>
           <nav className="side-nav" aria-label="Primary">
             {NAV.map((item) => {
               const Icon = item.icon;
@@ -141,7 +147,7 @@ export default function App() {
             <div className="toolbar-actions">
               <Tooltip><TooltipTrigger><button type="button" className="btn btn-icon" aria-label="Commands" onClick={() => setPaletteOpen(true)}><IconCommand /></button></TooltipTrigger><TooltipContent shortcut="Ctrl K">Commands</TooltipContent></Tooltip>
               <Tooltip><TooltipTrigger><button type="button" className="btn btn-icon" aria-label="Toggle inspector" aria-pressed={inspectorOpen} onClick={() => setInspectorOpen((open) => !open)}><IconInspect /></button></TooltipTrigger><TooltipContent shortcut="Ctrl I">Inspect</TooltipContent></Tooltip>
-              <Popover><PopoverTrigger label="Compare"><IconCompare /></PopoverTrigger><PopoverContent title="Compare"><p className="quiet">Pick two measured architectures in Estimation.</p></PopoverContent></Popover>
+              <Popover><PopoverTrigger label="Compare"><IconCompare /></PopoverTrigger><PopoverContent title="Compare"><p className="quiet">Pick two candidate hypotheses to compare evidence, confidence, and risk.</p></PopoverContent></Popover>
               <Tooltip><TooltipTrigger><button type="button" className="btn btn-icon" aria-label="Toggle theme" onClick={cycleTheme}><IconTheme /></button></TooltipTrigger><TooltipContent>Theme</TooltipContent></Tooltip>
               <HealthCapsule health={health} />
             </div>
@@ -163,9 +169,9 @@ export default function App() {
               {view === 'security' ? <main id="workspace" className="stage-stack"><SecurityExperience mode="workspace" /></main> : null}
               {view === 'trace' ? <main id="workspace" className="stage-stack"><TraceExperience mode="workspace" /></main> : null}
             </div>
-            <aside className={inspectorOpen ? 'inspector-dock is-open material-sheet' : 'inspector-dock material-sheet'} aria-label="Inspector" aria-hidden={!inspectorOpen}>
+            <aside className={inspectorOpen ? 'inspector-dock is-open material-sheet' : 'inspector-dock material-sheet'} aria-label="Scientific record inspector" aria-hidden={!inspectorOpen}>
               <button type="button" className="sheet-grab" aria-label="Close inspector" onClick={() => setInspectorOpen(false)} />
-              <div className="inspector-head"><p className="eyebrow">Inspector</p><button type="button" className="btn btn-icon" aria-label="Close inspector" onClick={() => setInspectorOpen(false)}><IconClose /></button></div>
+              <div className="inspector-head"><p className="eyebrow">Scientific record</p><button type="button" className="btn btn-icon" aria-label="Close inspector" onClick={() => setInspectorOpen(false)}><IconClose /></button></div>
               <div className="inspector-scroll">{inspector ?? <p className="quiet">Nothing selected</p>}</div>
             </aside>
           </div>

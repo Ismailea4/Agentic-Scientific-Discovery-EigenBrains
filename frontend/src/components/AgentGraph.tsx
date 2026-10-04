@@ -21,10 +21,10 @@ export interface AgentGraphNode {
 
 const ROLE_ORDER: AgentRole[] = ['task', 'router', 'agent', 'verifier'];
 const ROLE_LABEL: Record<AgentRole, string> = {
-  task: 'Task',
-  router: 'Router',
-  agent: 'Agents',
-  verifier: 'Verifier',
+  task: 'Question',
+  router: 'Orchestrator',
+  agent: 'Specialists',
+  verifier: 'Validation',
 };
 
 interface Edge {
@@ -90,12 +90,15 @@ export function AgentGraph({
       const origin = frame.getBoundingClientRect();
       const next: Edge[] = [];
       for (let index = 0; index < selectedPath.length - 1; index += 1) {
-        const from = nodeRefs.current.get(selectedPath[index]);
-        const to = nodeRefs.current.get(selectedPath[index + 1]);
+        const fromId = selectedPath[index];
+        const toId = selectedPath[index + 1];
+        if (!fromId || !toId) continue;
+        const from = nodeRefs.current.get(fromId);
+        const to = nodeRefs.current.get(toId);
         if (!from || !to) continue;
         next.push({
           d: curve(from.getBoundingClientRect(), to.getBoundingClientRect(), origin),
-          to: selectedPath[index + 1],
+          to: toId,
         });
       }
       setEdges(next);
@@ -112,7 +115,7 @@ export function AgentGraph({
       className="graph-frame"
       ref={frameRef}
       role="group"
-      aria-label="Agent architecture"
+      aria-label="Omnigent discovery orchestration"
       style={{ ['--cols' as string]: columns.length }}
     >
       <svg className="graph-edges" aria-hidden="true">
@@ -123,9 +126,12 @@ export function AgentGraph({
         })}
       </svg>
       <div className="graph-columns">
-        {columns.map((column) => (
-          <div className="graph-column" key={column[0].role}>
-            <p className="eyebrow">{ROLE_LABEL[column[0].role]}</p>
+        {columns.map((column) => {
+          const firstNode = column[0];
+          if (!firstNode) return null;
+          return (
+          <div className="graph-column" key={firstNode.role}>
+            <p className="eyebrow">{ROLE_LABEL[firstNode.role]}</p>
             {column.map((node) => (
               <Tooltip key={node.id}>
                 <TooltipTrigger>
@@ -155,7 +161,7 @@ export function AgentGraph({
                   >
                     <span className="node-status">
                       <i className="live-dot" aria-hidden="true" />
-                      {node.fallback ? 'Fallback' : node.active ? 'Active' : 'Idle'}
+                      {node.fallback ? 'Alternate' : node.active ? 'Active' : 'Idle'}
                     </span>
                     <span className="node-label">{node.label}</span>
                     {(node.durationLabel || node.costLabel || node.qualityLabel) && (
@@ -179,7 +185,7 @@ export function AgentGraph({
               </Tooltip>
             ))}
           </div>
-        ))}
+        );})}
       </div>
       <ContextMenu point={menu} items={menu?.items ?? []} onClose={closeMenu} />
     </div>

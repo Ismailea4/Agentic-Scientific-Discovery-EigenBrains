@@ -14,6 +14,7 @@ export function SecurityExperience({ mode }: { mode: 'narrative' | 'workspace' }
   const [decision, setDecision] = useState<PolicyEvaluationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const alpha = fixtureGraph.find((node) => node.id === 'alpha') ?? fixtureGraph[0];
+  if (!alpha) return null;
 
   useEffect(() => {
     let cancelled = false;
@@ -28,11 +29,11 @@ export function SecurityExperience({ mode }: { mode: 'narrative' | 'workspace' }
   const inspect = (name: string, denied: boolean) => {
     setInspector(
       <ObjectInspector
-        kind="Capability"
+        kind="Approval scope"
         title={name}
         status={denied ? 'Denied' : 'Granted'}
         capabilities={[{ name, state: denied ? 'denied' : 'granted' }]}
-        details={<p className="quiet">Scope: {fixturePolicy.task_scope ?? 'Any task'} · Lease: {denied ? 'policy denial' : 'active sample lease'}</p>}
+        details={<p className="quiet">Scope: {fixturePolicy.task_scope ?? 'Any experiment'} · Decision: {denied ? 'requires explicit investigator approval' : 'approved for this sample run'}</p>}
       />,
     );
     setInspectorOpen(true);
@@ -40,8 +41,8 @@ export function SecurityExperience({ mode }: { mode: 'narrative' | 'workspace' }
 
   if (mode === 'narrative') {
     return (
-      <section className="experience experience-narrative security-path" aria-label="Capability policy sample">
-        <div className="security-agent agent-node"><span className="node-status"><i className="live-dot is-running" />Agent</span><strong>Research</strong></div>
+      <section className="experience experience-narrative security-path" aria-label="Human approval gate sample">
+        <div className="security-agent agent-node"><span className="node-status"><i className="live-dot is-running" />Proposal</span><strong>Experiment</strong></div>
         <div className="security-stem" aria-hidden="true"><span /></div>
         <div className="security-branches">
           <div className="security-branch is-allowed">
@@ -83,7 +84,7 @@ export function SecurityExperience({ mode }: { mode: 'narrative' | 'workspace' }
           {(decision?.denied ?? alpha.denied).map((name) => <button type="button" key={name} onClick={() => inspect(name, true)}><CapabilityBadge name={name} state="denied" /></button>)}
         </div>
       </div>
-      <p className="experience-footnote">{decision?.allowed ? 'Mandatory capability satisfied; the optional export path remains structurally denied.' : 'Waiting for the policy engine.'}</p>
+      <p className="experience-footnote">{decision?.allowed ? 'Evidence review is approved; external export still requires a human decision.' : 'Waiting for an approval decision.'}</p>
     </section>
   );
 }

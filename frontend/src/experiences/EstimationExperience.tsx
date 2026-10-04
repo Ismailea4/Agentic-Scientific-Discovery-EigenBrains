@@ -7,7 +7,7 @@ import { ObjectInspector } from '../components/ObjectInspector';
 import { Popover, PopoverContent, PopoverTrigger, Tooltip, TooltipContent, TooltipTrigger } from '../components/overlay';
 import { SampleMark } from '../components/SampleMark';
 import { useShell } from '../components/shell';
-import { CostLatencyMetric, SegmentedControl, cx, formatPlain } from '../components/ui';
+import { SegmentedControl, cx, formatPlain } from '../components/ui';
 import { fixtureFrontier } from '../dev/fixtures';
 import { useGet } from '../hooks/useGet';
 
@@ -20,9 +20,9 @@ const MODES: { value: RunMode; label: string }[] = [
 ];
 
 const STEPS = [
-  ['Bench', 'Benchmark'], ['Measure', 'Quality, cost, latency, risk'],
-  ['Feasible', 'Capability constraint'], ['Pareto', 'Non-dominated set'],
-  ['Execute', 'Least privilege'], ['Fallback', 'Only if authorized'], ['Trace', 'Audit record'],
+  ['Question', 'Research objective'], ['Evidence', 'Cited literature and data'],
+  ['Hypothesis', 'Falsifiable mechanism'], ['Experiment', 'Discriminating protocol'],
+  ['Result', 'Observed evidence'], ['Decision', 'Updated next action'],
 ] as const;
 
 export function EstimationExperience({ mode }: { mode: 'narrative' | 'workspace' }) {
@@ -73,19 +73,18 @@ export function EstimationExperience({ mode }: { mode: 'narrative' | 'workspace'
     if (mode !== 'workspace' || !selected) return;
     setInspector(
       <ObjectInspector
-        kind="Architecture"
+        kind="Hypothesis"
         title={selected.name}
-        status={pareto?.frontier.includes(selected.id) ? 'Frontier' : pareto?.dominated.includes(selected.id) ? 'Dominated' : 'Registered'}
-        latency={formatPlain(selected.latency)}
-        cost={formatPlain(selected.cost)}
+        status={pareto?.frontier.includes(selected.id) ? 'Priority candidate' : pareto?.dominated.includes(selected.id) ? 'Lower priority' : 'Registered'}
         capabilities={(capabilities.data?.capabilities ?? []).map((item) => ({ name: item.name, state: 'neutral' }))}
         details={(
           <div className="inspector-body">
-            <CostLatencyMetric cost={formatPlain(selected.cost)} latency={formatPlain(selected.latency)} />
             <dl className="kv">
-              <div><dt>Quality</dt><dd>{formatPlain(selected.quality)}</dd></div>
-              <div><dt>Risk</dt><dd>{formatPlain(selected.risk)}</dd></div>
-              {compared && compared.id !== selected.id ? <div><dt>Δ quality</dt><dd>{formatPlain(selected.quality - compared.quality)}</dd></div> : null}
+              <div><dt>Confidence</dt><dd>{Math.round(selected.quality * 100)}%</dd></div>
+              <div><dt>Uncertainty</dt><dd>{formatPlain(selected.risk)}</dd></div>
+              <div><dt>Evidence burden</dt><dd>{formatPlain(selected.cost)}</dd></div>
+              <div><dt>Experiment horizon</dt><dd>{formatPlain(selected.latency)} days</dd></div>
+              {compared && compared.id !== selected.id ? <div><dt>Δ confidence</dt><dd>{Math.round((selected.quality - compared.quality) * 100)} pp</dd></div> : null}
             </dl>
           </div>
         )}
@@ -96,9 +95,9 @@ export function EstimationExperience({ mode }: { mode: 'narrative' | 'workspace'
 
   if (mode === 'narrative') {
     return (
-      <section className="experience experience-narrative estimation-narrative" aria-label="Architecture estimation sample">
+      <section className="experience experience-narrative estimation-narrative" aria-label="Hypothesis prioritization sample">
         <div className="experience-mark"><SampleMark /></div>
-        <FrontierChart candidates={points} selectedId="careful" onSelect={() => undefined} reveal />
+        <FrontierChart candidates={points} selectedId="prioritized-replay" onSelect={() => undefined} reveal />
       </section>
     );
   }
@@ -106,22 +105,22 @@ export function EstimationExperience({ mode }: { mode: 'narrative' | 'workspace'
   return (
     <section className="experience experience-workspace estimation-workspace">
       <div className="view-toolbar experience-toolbar">
-        <SegmentedControl label="Run mode" value={runMode} options={MODES} onChange={setRunMode} />
+        <SegmentedControl label="Prioritization" value={runMode} options={MODES} onChange={setRunMode} />
         <Tooltip>
           <TooltipTrigger>
             <button type="button" className="btn btn-icon" aria-disabled="true" aria-label="Run" onClick={(event) => event.preventDefault()}><IconPlay /></button>
           </TooltipTrigger>
-          <TooltipContent>No task registered</TooltipContent>
+          <TooltipContent>No experiment is connected yet</TooltipContent>
         </Tooltip>
         <Popover>
           <PopoverTrigger label="About this mode"><IconMode /></PopoverTrigger>
-          <PopoverContent title="Mode"><p className="quiet">Weights stay unset.</p></PopoverContent>
+          <PopoverContent title="Prioritization"><p className="quiet">Compare confidence, uncertainty, evidence burden, and experiment horizon.</p></PopoverContent>
         </Popover>
         {useSample ? <SampleMark /> : null}
       </div>
       {architectures.loading ? <p className="quiet">Loading…</p> : null}
       {architectures.error ? <p className="alert" role="alert">{architectures.error}</p> : null}
-      {useSample && architectures.data ? <p className="experience-footnote">No live architectures registered. Showing a hand-written layout sample.</p> : null}
+      {useSample && architectures.data ? <p className="experience-footnote">No live hypotheses received. Showing a clearly labeled scientific sample.</p> : null}
       {!useSample ? (
         <div className="card-grid">
           {liveRows.map((row) => (
@@ -137,10 +136,10 @@ export function EstimationExperience({ mode }: { mode: 'narrative' | 'workspace'
           ))}
         </div>
       ) : null}
-      <FrontierChart candidates={points} selectedId={selectedId ?? (useSample ? 'careful' : null)} reveal onSelect={(id) => {
+      <FrontierChart candidates={points} selectedId={selectedId ?? (useSample ? 'prioritized-replay' : null)} reveal onSelect={(id) => {
         if (!useSample) { setSelectedId(id); setInspectorOpen(true); }
       }} />
-      <ol className="stepper" aria-label="Pipeline">
+      <ol className="stepper" aria-label="Scientific discovery loop">
         {STEPS.map(([label, hint]) => <li key={label}><Tooltip><TooltipTrigger><span className="step" tabIndex={0}>{label}</span></TooltipTrigger><TooltipContent>{hint}</TooltipContent></Tooltip></li>)}
       </ol>
     </section>
@@ -159,7 +158,7 @@ function ArchitectureButton({ row, selected, compared, marker, onSelect, onCompa
     <button type="button" className={cx('agent-node', selected && 'is-inspected', compared && 'is-compared')} aria-pressed={selected} onClick={onSelect} onDoubleClick={onCompare}>
       <span className="node-status">{marker}</span>
       <span className="node-label">{row.name}</span>
-      <span className="node-metrics"><span>q {formatPlain(row.quality)}</span><span>c {formatPlain(row.cost)}</span><span>L {formatPlain(row.latency)}</span></span>
+      <span className="node-metrics"><span>{Math.round(row.quality * 100)}% confidence</span><span>U {formatPlain(row.risk)}</span><span>{formatPlain(row.latency)}d</span></span>
     </button>
   );
 }

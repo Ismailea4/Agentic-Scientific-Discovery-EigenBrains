@@ -17,18 +17,24 @@ const ROUTES: Record<string, AppView> = {
   estimation: 'estimation',
   security: 'security',
   trace: 'trace',
+  discovery: 'agents',
+  hypotheses: 'estimation',
+  approval: 'security',
+  record: 'trace',
 };
 
 function parseHash(): AppView {
+  if (typeof window === 'undefined') return 'home';
   const value = window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '');
   return ROUTES[value] ?? 'home';
 }
 
 /** Hash routing without an extra dependency. Legacy routes remain aliases. */
 export function useHashView(): [AppView, (view: AppView) => void] {
-  const [view, setView] = useState<AppView>(parseHash);
+  const [view, setView] = useState<AppView>('home');
 
   useEffect(() => {
+    setView(parseHash());
     const onChange = () => setView(parseHash());
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);

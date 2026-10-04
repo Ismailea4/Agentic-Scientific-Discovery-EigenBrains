@@ -121,5 +121,5 @@ export function SegmentedControl<T extends string>({
 }
 
 export function formatPlain(value: number): string {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(value);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(value);
 }

@@ -8,7 +8,7 @@ export function CommandSurface({ docked }: { docked: boolean }) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    setMessage('No task registered.');
+    setMessage('Question staged for the next Omnigent discovery run.');
   };
 
   return (
@@ -19,12 +19,12 @@ export function CommandSurface({ docked }: { docked: boolean }) {
             <IconPlus />
           </PopoverTrigger>
           <PopoverContent title="Context">
-            <p className="quiet">Nothing attached.</p>
+            <p className="quiet">Attach literature, datasets, protocols, or prior results.</p>
           </PopoverContent>
         </Popover>
         <input
-          aria-label="Ask EigenBrains"
-          placeholder="Ask EigenBrains anything…"
+          aria-label="Ask Noesis a research question"
+          placeholder="Ask a falsifiable scientific question…"
           onChange={() => message && setMessage('')}
         />
         <Tooltip>

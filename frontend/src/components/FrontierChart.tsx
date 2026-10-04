@@ -15,9 +15,9 @@ export interface FrontierCandidate {
 type Axis = 'cost' | 'latency' | 'risk';
 
 const AXES: { value: Axis; label: string }[] = [
-  { value: 'cost', label: 'Cost' },
-  { value: 'latency', label: 'Latency' },
-  { value: 'risk', label: 'Risk' },
+  { value: 'cost', label: 'Evidence burden' },
+  { value: 'latency', label: 'Experiment horizon' },
+  { value: 'risk', label: 'Uncertainty' },
 ];
 
 const WIDTH = 640;
@@ -89,9 +89,9 @@ export function FrontierChart({
 
   return (
     <div className={reveal ? 'chart-wrap is-revealing' : 'chart-wrap'}>
-      <SegmentedControl label="Frontier axis" value={axis} options={AXES} onChange={setAxis} />
+      <SegmentedControl label="Hypothesis comparison axis" value={axis} options={AXES} onChange={setAxis} />
       <svg key={axis} role="img" aria-labelledby={titleId} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
-        <title id={titleId}>Quality versus {axis}. Higher quality is up. Lower {axis} is left.</title>
+        <title id={titleId}>{`Confidence versus ${axis}. Higher confidence is up. Lower ${axis} is left.`}</title>
         {ticks(yMin, yMax).map((tick) => (
           <g className="chart-grid-line" key={`y-${tick}`}>
             <line className="grid" x1={PAD.left} x2={WIDTH - PAD.right} y1={yOf(tick)} y2={yOf(tick)} />
@@ -106,7 +106,7 @@ export function FrontierChart({
           </text>
         ))}
         <text className="axis chart-axis-label" x={PAD.left} y={12}>
-          Quality
+          Confidence
         </text>
         <text className="axis chart-axis-label" x={WIDTH - PAD.right} y={HEIGHT - 4} textAnchor="end">
           {AXES.find((item) => item.value === axis)?.label}
@@ -121,7 +121,7 @@ export function FrontierChart({
               key={candidate.id}
               role="button"
               tabIndex={0}
-              aria-label={`${candidate.label}, ${candidate.dominated === null ? 'unclassified' : candidate.dominated ? 'dominated' : 'non-dominated'}`}
+              aria-label={`${candidate.label}, ${candidate.dominated === null ? 'unclassified' : candidate.dominated ? 'lower priority' : 'priority candidate'}`}
               aria-pressed={selected}
               className="chart-point"
               style={{ ['--point-index' as string]: index } as CSSProperties}
@@ -149,8 +149,8 @@ export function FrontierChart({
       </svg>
       {note && <p className="quiet">{note}</p>}
       <div className="legend">
-        <span><i className="swatch" /> Non-dominated</span>
-        <span><i className="swatch hollow" /> Dominated</span>
+        <span><i className="swatch" /> Priority candidate</span>
+        <span><i className="swatch hollow" /> Lower priority</span>
         <span><i className="swatch dashed" /> Unclassified</span>
       </div>
     </div>

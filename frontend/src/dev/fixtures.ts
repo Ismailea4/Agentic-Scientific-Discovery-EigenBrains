@@ -26,7 +26,7 @@ export interface ShowcaseAgent extends AgentGraphNode {
 export const fixtureGraph: ShowcaseAgent[] = [
   {
     id: 'task',
-    label: 'Task',
+    label: 'Research question',
     role: 'task',
     active: true,
     granted: [],
@@ -35,12 +35,12 @@ export const fixtureGraph: ShowcaseAgent[] = [
     onPath: true,
     mandatory: ['read'],
     optional: ['export'],
-    taskScope: 'showcase',
+    taskScope: 'rl-sample-efficiency-study',
     leaseStatus: 'none',
   },
   {
     id: 'router',
-    label: 'Router',
+    label: 'Omnigent orchestrator',
     role: 'router',
     active: true,
     granted: ['route'],
@@ -54,7 +54,7 @@ export const fixtureGraph: ShowcaseAgent[] = [
   },
   {
     id: 'alpha',
-    label: 'Agent Alpha',
+    label: 'RL Literature Analyst',
     role: 'agent',
     active: true,
     granted: ['draft', 'read'],
@@ -62,7 +62,7 @@ export const fixtureGraph: ShowcaseAgent[] = [
     fallback: false,
     onPath: true,
     durationLabel: '18s',
-    qualityLabel: '1',
+    qualityLabel: '0.72',
     mandatory: ['read'],
     optional: ['export'],
     taskScope: 'showcase',
@@ -70,7 +70,7 @@ export const fixtureGraph: ShowcaseAgent[] = [
   },
   {
     id: 'beta',
-    label: 'Agent Beta',
+    label: 'RL Theory Specialist',
     role: 'agent',
     active: false,
     granted: [],
@@ -84,7 +84,7 @@ export const fixtureGraph: ShowcaseAgent[] = [
   },
   {
     id: 'verifier',
-    label: 'Verifier',
+    label: 'Scientific Critic',
     role: 'verifier',
     active: true,
     granted: ['verify'],
@@ -102,18 +102,18 @@ export const fixturePath = ['task', 'router', 'alpha', 'verifier'];
 export const fixtureFallbackPath = ['task', 'router', 'beta', 'verifier'];
 
 export const fixtureExecution = {
-  task: 'Fixture task',
-  architecture: 'careful',
-  agent: 'Agent Alpha',
-  model: 'unspecified',
-  quality: '1',
-  risk: '0.125',
+  task: 'Can prioritized experience replay improve sample efficiency without destabilizing policy learning?',
+  architecture: 'Evidence-led reinforcement learning study',
+  agent: 'RL Literature Analyst',
+  model: 'Databricks Omnigent specialist · sample',
+  quality: '72% confidence',
+  risk: '28% uncertainty',
 };
 
 export const fixtureFrontier: ParetoCandidate[] = [
-  { id: 'lean', quality: 0.5, cost: 1, latency: 10, risk: 0.25, metadata: { source: 'development-fixture' } },
-  { id: 'careful', quality: 1, cost: 2, latency: 20, risk: 0.125, metadata: { source: 'development-fixture' } },
-  { id: 'heavy', quality: 0.75, cost: 4, latency: 40, risk: 0.5, metadata: { source: 'development-fixture' } },
+  { id: 'prioritized-replay', quality: 0.72, cost: 2, latency: 7, risk: 0.28, metadata: { source: 'development-fixture' } },
+  { id: 'distributional-q-learning', quality: 0.64, cost: 3, latency: 12, risk: 0.36, metadata: { source: 'development-fixture' } },
+  { id: 'curiosity-exploration', quality: 0.49, cost: 4, latency: 21, risk: 0.51, metadata: { source: 'development-fixture' } },
 ];
 
 export const fixturePolicy: EvaluatePolicyRequest = {

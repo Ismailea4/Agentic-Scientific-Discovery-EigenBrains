@@ -54,7 +54,7 @@ export function CapabilityInspector({
       <Row label="Granted" names={granted} state="granted" />
       <Row label="Denied" names={denied} state="denied" />
       <details className="disclosure">
-        <summary>Requirements</summary>
+        <summary>Approval requirements</summary>
         <Row label="Mandatory" names={mandatory} state="mandatory" />
         <Row label="Optional" names={optional} state="optional" />
         {mandatory.length === 0 && optional.length === 0 && <p className="quiet">None</p>}

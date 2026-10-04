@@ -17,7 +17,7 @@ export function ObjectInspector({
   action,
   details,
 }: {
-  kind: 'Agent' | 'Architecture' | 'Capability' | 'Trace event' | 'Benchmark result';
+  kind: 'Specialist agent' | 'Hypothesis' | 'Approval scope' | 'Research event' | 'Evidence record';
   title: string;
   status?: string;
   model?: string;
@@ -50,7 +50,7 @@ export function ObjectInspector({
         </div>
       ) : null}
       {action}
-      {details ? <details className="disclosure"><summary>Details</summary>{details}</details> : null}
+      {details ? <details className="disclosure" open><summary>Scientific record</summary>{details}</details> : null}
     </div>
   );
 }
