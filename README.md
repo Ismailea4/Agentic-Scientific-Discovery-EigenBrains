@@ -9,6 +9,8 @@
 **A Hack-Nation 7th Edition Submission by Team EigenBrains**
 **Challenge 03 — 10× Faster Scientific Discovery**
 
+![Demo of my app](docs/gif_30s_demo.gif)
+
 ---
 
 ## 🚀 The Moonshot
