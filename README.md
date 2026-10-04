@@ -6,7 +6,7 @@ An Omnigent-orchestrated AI lab built for the Hack-Nation 7th Challenge 03 to au
 - Two recorded Omnigent discovery loops with immutable ledgers and artifacts.
 - A frozen acceleration protocol comparing information-gain selection with a
   conventional fixed sweep and a larger reference design.
-- 63 Python tests covering the scientific core, ledger, planner, statistics,
+- 70 Python tests covering the scientific core, ledger, planner, statistics,
   agent-facing contracts, and public SDK.
 
 See [`discolab/README.md`](discolab/README.md) for the research system and
@@ -25,6 +25,9 @@ All three languages share the versioned JSONL contract in
 logic and ledger transition guards remain authoritative in Python.
 Detailed method and failure semantics are in
 [`docs/SDK_CONTRACTS.md`](docs/SDK_CONTRACTS.md).
+The end-to-end evidence workflow, schemas, provenance, reproduction, and
+three-language examples are in
+[`docs/RESEARCH_SDK.md`](docs/RESEARCH_SDK.md).
 
 The agents' research doctrine is documented in
 [`docs/SCIENTIFIC_RESEARCH_PLAYBOOK.md`](docs/SCIENTIFIC_RESEARCH_PLAYBOOK.md).

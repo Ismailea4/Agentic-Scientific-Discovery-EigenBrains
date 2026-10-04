@@ -3,6 +3,10 @@
 The SDK exposes the same validated research transitions used by the Omnigent
 agents. It is intentionally not a second implementation of the laboratory.
 
+It also provides a domain-independent evidence runtime for computational
+research. The full guide is in
+[`docs/RESEARCH_SDK.md`](../docs/RESEARCH_SDK.md).
+
 ## Architecture
 
 ```text
@@ -13,8 +17,10 @@ Python SDK (authoritative orchestration and statistics)
                     `-- Julia client + theoretical decision-math helpers
 ```
 
-Every mutation still passes through the append-only ledger and its transition
-guards. The protocol never accepts arbitrary Python code or shell commands.
+Domain-specific mutations pass through the laboratory ledger and its transition
+guards. Generic evidence runs use their own append-only lifecycle log, declared
+schemas, content hashes, and provenance manifest. The protocol never accepts
+arbitrary Python code or shell commands.
 
 ## Python
 
@@ -74,5 +80,5 @@ julia --project=sdk/julia -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
 ```
 
 The Rust and Julia suites each start a real Python bridge in a temporary lab,
-exercise validated lifecycle transitions, and confirm that a rejected method
-returns a structured error without terminating the persistent session.
+exercise both the laboratory and generic evidence lifecycle, and confirm that a
+rejected method returns a structured error without terminating the session.

@@ -49,6 +49,56 @@ id/version mismatches and successful envelopes that omit `result`.
 | `analyze` | `experiment_id`, `interpretation`; optional `threats_to_validity` | records analysis and deterministic belief updates |
 | `decide` | `decision`, `rationale`; optional `next_experiment` | records the next scientific decision |
 | `register_hypothesis` | hypothesis schema | appends a testable agent-generated hypothesis |
+| `research.begin` | `spec` (`ExperimentSpecV2`) | creates a generic evidence run |
+| `research.emit` | `run_id`, `name`, `kind`, `value`, `schema`; optional `stage`, `parents` | validates and writes one semantic artifact |
+| `research.metric` | `run_id`, `name`, `value`; optional metric `spec` | records one unit-bearing metric |
+| `research.consume` | `run_id`; optional `evaluations` | accounts work and enforces cooperative budgets |
+| `research.finalize` | `run_id` | closes, checks completeness, and validates a run |
+| `research.inspect` | `run_id` | no |
+| `research.validate` | `run_id` | verifies hashes and schemas; records validation once |
+| `research.compare` | `left`, `right` | no |
+| `research.accept` | `run_id`, `rationale` | marks validated output accepted as evidence |
+| `research.reproduce` | `run_id` | reruns an importable Python experiment definition |
+
+The `research.*` calls are stateful within one bridge process between `begin`
+and `finalize`. If the bridge exits, unfinished contexts are deliberately not
+resumed. Completed runs remain inspectable from any later process.
+
+## Generic evidence schema
+
+`ExperimentSpecV2` is the common Python/Rust/Julia contract:
+
+```json
+{
+  "spec_version": 2,
+  "capability": "optimization",
+  "hypothesis": "The controller recovers after a shift.",
+  "protocol": "protocols/recovery-v1.md",
+  "parameters": {"population": 64},
+  "seed": 2026,
+  "outputs": [{
+    "name": "trajectory", "version": 1, "kind": "table",
+    "fields": [
+      {"name": "evaluation", "dtype": "integer", "unit": "count", "role": "index"},
+      {"name": "loss", "dtype": "number", "unit": "objective", "role": "observation"}
+    ]
+  }],
+  "primary_metric": {
+    "name": "recovery_time", "unit": "evaluations", "role": "primary",
+    "minimum": 0, "censoring": "right"
+  },
+  "budget": {"max_evaluations": 10000, "max_seconds": 60},
+  "runner": null,
+  "inputs": {},
+  "reproduction_of": null
+}
+```
+
+Field dtypes are `number`, `integer`, `string`, or `boolean`. Artifact kinds are
+`table`, `array`, or `json`; stages are `raw`, `derived`, or `analysis`.
+Derived/analysis artifacts require explicit parent names. Metric units must
+match for comparison. See
+[`RESEARCH_SDK.md`](RESEARCH_SDK.md) for the complete workflow and limitations.
 
 ## Experiment schema
 
@@ -83,6 +133,11 @@ duplicate those evolving scientific constraints.
   `confirm_heldout: true` after obtaining and recording human approval.
 - Protocol clients must not retry a mutating call after an unknown transport
   failure without first reading `state`/`events` to determine whether it landed.
+- Generic evidence outputs must be declared before execution and emitted only
+  once. Finalization fails if a declared schema or primary metric is missing.
+- Artifact paths are run-local and content-verified with SHA-256.
+- Evaluation and wall-time bounds are cooperative: callers must use
+  `research.consume` and the Python runtime's budget checks.
 
 ## Compatibility and parity
 
@@ -94,4 +149,5 @@ semantics requires a new protocol version.
 
 The language clients also run live bridge tests against a temporary Python lab.
 Those tests cover initialization, proposal, deterministic scoring, selection,
-state/event reads, and recovery from a structured remote error.
+state/event reads, a schema-validated generic evidence run, and recovery from a
+structured remote error.

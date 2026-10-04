@@ -1,5 +1,16 @@
 # EigenBrains Rust SDK
 
+This crate combines a persistent client for the versioned local Python bridge
+with native numerical kernels. Generic evidence runs use typed
+`ResourceBudget`, `FieldSchema`, `ArtifactSchema`, `MetricSpec`, and
+`ResearchExperimentSpec` structs, followed by `begin_research_run`, semantic
+artifact/metric calls, budget accounting, and final validation.
+
+The Python package remains the authoritative evidence runtime. Remote
+validation errors are returned as `SdkError::Remote` rather than flattened into
+transport failures. The full workflow and current limitations are documented
+in [`../../../docs/RESEARCH_SDK.md`](../../../docs/RESEARCH_SDK.md).
+
 The Rust crate provides:
 
 - a persistent client covering every protocol-v1 lifecycle method;
