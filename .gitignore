@@ -52,6 +52,7 @@ coverage.xml
 .pytest_cache/
 .tmp-pytest-*/
 .verification/
+.interop-demo/
 cover/
 
 # Translations

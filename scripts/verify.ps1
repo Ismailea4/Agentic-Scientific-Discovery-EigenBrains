@@ -3,6 +3,7 @@ param(
     [switch]$Install,
     [switch]$CoreOnly,
     [switch]$ClaimsOnly,
+    [switch]$Interop,
     [switch]$ReproduceAcceleration,
     [switch]$KeepArtifacts
 )
@@ -13,6 +14,10 @@ $stamp = [DateTimeOffset]::UtcNow.ToString("yyyyMMdd-HHmmss")
 $verificationRoot = Join-Path $repoRoot ".verification\$stamp"
 $failures = [System.Collections.Generic.List[string]]::new()
 $results = [System.Collections.Generic.List[object]]::new()
+
+if ($Interop -and ($CoreOnly -or $ClaimsOnly)) {
+    throw "-Interop requires the full profile; do not combine it with -CoreOnly or -ClaimsOnly"
+}
 
 function Invoke-Check {
     param(
@@ -142,6 +147,11 @@ try {
             Invoke-Check "Julia tests" {
                 Require-Command julia
                 julia --project=.\sdk\julia -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
+            }
+            if ($Interop) {
+                Invoke-Check "Python-Rust-Julia interoperability proof" {
+                    python -m sdk.interop.demo --root (Join-Path $verificationRoot "interop")
+                }
             }
         }
     }
