@@ -18,7 +18,8 @@ from .ledger import Ledger
 from .views import result_summary, state_summary
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
     if not argv:
         print(__doc__)
         return 2
@@ -56,4 +57,4 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())

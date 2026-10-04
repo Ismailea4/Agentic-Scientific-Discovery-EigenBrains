@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eigenbrains.dev/sdk/protocol/v1/schema.json",
+  "title": "EigenBrains SDK JSONL protocol v1",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": ["id", "version", "method"],
+      "properties": {
+        "id": {"type": ["integer", "string", "null"]},
+        "version": {"const": "1.0"},
+        "method": {
+          "enum": [
+            "initialize", "state", "events", "propose", "score", "select",
+            "run", "abort", "result", "analyze", "decide", "register_hypothesis"
+          ]
+        },
+        "params": {"type": "object", "default": {}}
+      },
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {"type": "string"},
+        "message": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": ["id", "version", "ok"],
+      "properties": {
+        "id": {"type": ["integer", "string", "null"]},
+        "version": {"const": "1.0"},
+        "ok": {"type": "boolean"},
+        "result": {},
+        "error": {"$ref": "#/$defs/error"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"ok": {"const": true}}},
+          "then": {"required": ["result"], "not": {"required": ["error"]}},
+          "else": {"required": ["error"], "not": {"required": ["result"]}}
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {"$ref": "#/$defs/request"},
+    {"$ref": "#/$defs/response"}
+  ]
+}

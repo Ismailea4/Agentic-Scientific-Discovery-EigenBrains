@@ -5,6 +5,10 @@ description = "Dynamic-landscape evaluation environment and bio-inspired search 
 requires-python = ">=3.12"
 dependencies = ["numpy>=2", "scipy>=1.13", "pydantic>=2", "pyyaml>=6", "omnigent==0.16.0", "omnigent-client==0.16.0"]
 
+[project.scripts]
+eigenbrains-lab = "discolab.cli:main"
+eigenbrains-rpc = "discolab.rpc:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 
