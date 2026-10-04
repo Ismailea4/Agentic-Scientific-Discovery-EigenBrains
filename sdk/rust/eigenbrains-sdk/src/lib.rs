@@ -1,72 +1,63 @@
 //! EigenBrains Rust SDK.
 //!
-//! [`Bridge`] talks to the authoritative Python laboratory through the
-//! versioned JSON-lines protocol. [`kernels`] contains dependency-free native
-//! implementations intended for high-volume telemetry paths.
+//! [`Bridge`] talks to the authoritative Python runtime through the versioned
+//! JSON-lines protocol (a Python sidecar process is required). [`contracts`]
+//! holds typed, validated evidence specs with builders; [`kernels`] contains
+//! dependency-free native implementations for high-volume telemetry paths;
+//! [`npy`] reads the float64 arrays the Python runtime emits.
 
-use serde_json::{json, Value};
+pub mod contracts;
+pub mod kernels;
+pub mod npy;
+
+pub use contracts::{
+    is_valid_name, ArtifactSchema, FieldSchema, MetricSpec, ResearchExperimentSpec,
+    ResearchExperimentSpecBuilder, ResourceBudget,
+};
+
+use serde_json::{json, Map, Value};
 use std::fmt::{Display, Formatter};
 use std::io::{BufRead, BufReader, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 pub const PROTOCOL_VERSION: &str = "1.0";
 
-#[derive(Debug, Clone, Default)]
-pub struct ResourceBudget {
-    pub max_evaluations: Option<u64>,
-    pub max_seconds: Option<f64>,
-}
-
-#[derive(Debug, Clone)]
-pub struct FieldSchema {
-    pub name: String,
-    pub dtype: String,
-    pub unit: Option<String>,
-    pub role: Option<String>,
-    pub nullable: bool,
-    pub minimum: Option<f64>,
-    pub maximum: Option<f64>,
-    pub censoring: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ArtifactSchema {
-    pub name: String,
-    pub version: u32,
-    pub kind: String,
-    pub fields: Vec<FieldSchema>,
-    pub dtype: Option<String>,
-    pub ndim: Option<u32>,
-    pub unit: Option<String>,
-    pub role: Option<String>,
-    pub allow_extra_fields: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct MetricSpec {
-    pub name: String,
-    pub unit: String,
-    pub role: String,
-    pub minimum: Option<f64>,
-    pub maximum: Option<f64>,
-    pub censoring: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ResearchExperimentSpec {
-    pub capability: String,
-    pub hypothesis: String,
-    pub protocol: String,
-    pub parameters: Value,
-    pub seed: i64,
-    pub outputs: Vec<ArtifactSchema>,
-    pub primary_metric: MetricSpec,
-    pub budget: ResourceBudget,
-    pub runner: Option<String>,
-    pub inputs: Value,
-    pub reproduction_of: Option<String>,
-}
+/// Every protocol-v1 method this client implements (checked against the
+/// schema and the shared contract fixtures in the test suite).
+pub const METHODS: &[&str] = &[
+    "describe",
+    "initialize",
+    "state",
+    "events",
+    "propose",
+    "score",
+    "select",
+    "run",
+    "abort",
+    "result",
+    "analyze",
+    "decide",
+    "register_hypothesis",
+    "research.begin",
+    "research.emit",
+    "research.metric",
+    "research.consume",
+    "research.checkpoint",
+    "research.resume",
+    "research.fail",
+    "research.finalize",
+    "research.inspect",
+    "research.validate",
+    "research.list",
+    "research.compare",
+    "research.accept",
+    "research.reject",
+    "research.reproduce",
+    "research.lineage",
+    "research.export_bundle",
+    "research.verify_bundle",
+];
 
 #[derive(Debug, Clone)]
 pub struct ArtifactEmission {
@@ -78,48 +69,61 @@ pub struct ArtifactEmission {
     pub parents: Vec<String>,
 }
 
-impl FieldSchema {
-    fn as_json(&self) -> Value {
-        json!({
-            "name": self.name, "dtype": self.dtype, "unit": self.unit, "role": self.role,
-            "nullable": self.nullable, "minimum": self.minimum, "maximum": self.maximum,
-            "censoring": self.censoring,
-        })
+impl ArtifactEmission {
+    fn of(kind: &str, name: impl Into<String>, schema_id: impl Into<String>, value: Value) -> Self {
+        Self {
+            name: name.into(),
+            kind: kind.into(),
+            value,
+            schema: schema_id.into(),
+            stage: "raw".into(),
+            parents: Vec::new(),
+        }
+    }
+    pub fn table(name: impl Into<String>, schema_id: impl Into<String>, rows: Value) -> Self {
+        Self::of("table", name, schema_id, rows)
+    }
+    pub fn json(name: impl Into<String>, schema_id: impl Into<String>, value: Value) -> Self {
+        Self::of("json", name, schema_id, value)
+    }
+    pub fn array(name: impl Into<String>, schema_id: impl Into<String>, value: Value) -> Self {
+        Self::of("array", name, schema_id, value)
+    }
+    /// `derived` or `analysis` artifacts must name their parents.
+    pub fn stage(mut self, stage: impl Into<String>) -> Self {
+        self.stage = stage.into();
+        self
+    }
+    pub fn parent(mut self, parent: impl Into<String>) -> Self {
+        self.parents.push(parent.into());
+        self
     }
 }
 
-impl ArtifactSchema {
-    fn as_json(&self) -> Value {
-        json!({
-            "name": self.name, "version": self.version, "kind": self.kind,
-            "fields": self.fields.iter().map(FieldSchema::as_json).collect::<Vec<_>>(),
-            "dtype": self.dtype, "ndim": self.ndim, "unit": self.unit, "role": self.role,
-            "allow_extra_fields": self.allow_extra_fields,
-        })
-    }
+/// Filters for `research.list`; times are ISO-8601 strings (inclusive bounds).
+#[derive(Debug, Clone, Default)]
+pub struct RunFilter {
+    pub capability: Option<String>,
+    pub status: Option<String>,
+    pub seed: Option<i64>,
+    pub created_after: Option<String>,
+    pub created_before: Option<String>,
 }
 
-impl MetricSpec {
-    fn as_json(&self) -> Value {
-        json!({
-            "name": self.name, "unit": self.unit, "role": self.role,
-            "minimum": self.minimum, "maximum": self.maximum, "censoring": self.censoring,
-        })
-    }
-}
-
-impl ResearchExperimentSpec {
-    fn as_json(&self) -> Value {
-        json!({
-            "capability": self.capability, "hypothesis": self.hypothesis,
-            "protocol": self.protocol, "parameters": self.parameters, "seed": self.seed,
-            "outputs": self.outputs.iter().map(ArtifactSchema::as_json).collect::<Vec<_>>(),
-            "primary_metric": self.primary_metric.as_json(),
-            "budget": {"max_evaluations": self.budget.max_evaluations,
-                       "max_seconds": self.budget.max_seconds},
-            "runner": self.runner, "inputs": self.inputs,
-            "reproduction_of": self.reproduction_of,
-        })
+impl RunFilter {
+    fn to_json(&self) -> Value {
+        let mut map = Map::new();
+        let mut put = |key: &str, value: Value| {
+            if !value.is_null() {
+                map.insert(key.into(), value);
+            }
+        };
+        put("capability", json!(self.capability));
+        put("status", json!(self.status));
+        put("seed", json!(self.seed));
+        put("created_after", json!(self.created_after));
+        put("created_before", json!(self.created_before));
+        Value::Object(map)
     }
 }
 
@@ -128,7 +132,25 @@ pub enum SdkError {
     Io(std::io::Error),
     Json(serde_json::Error),
     Protocol(String),
-    Remote { code: String, message: String },
+    /// Rejected locally before anything was sent (contract validation).
+    Invalid(String),
+    Remote {
+        code: String,
+        message: String,
+    },
+}
+
+impl SdkError {
+    /// Error type name recorded when a scoped run fails.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Io(_) => "RustIoError",
+            Self::Json(_) => "RustJsonError",
+            Self::Protocol(_) => "RustProtocolError",
+            Self::Invalid(_) => "RustValidationError",
+            Self::Remote { .. } => "RemoteError",
+        }
+    }
 }
 
 impl Display for SdkError {
@@ -137,6 +159,7 @@ impl Display for SdkError {
             Self::Io(e) => write!(f, "I/O error: {e}"),
             Self::Json(e) => write!(f, "JSON error: {e}"),
             Self::Protocol(e) => write!(f, "EigenBrains protocol error: {e}"),
+            Self::Invalid(e) => write!(f, "invalid evidence contract: {e}"),
             Self::Remote { code, message } => {
                 write!(f, "EigenBrains remote error {code}: {message}")
             }
@@ -156,42 +179,57 @@ impl From<serde_json::Error> for SdkError {
     }
 }
 
-pub struct Bridge {
-    child: Child,
-    stdin: ChildStdin,
-    stdout: BufReader<ChildStdout>,
-    next_id: u64,
+/// How to start the Python sidecar.
+#[derive(Debug, Clone)]
+pub struct BridgeConfig {
+    python: String,
+    root: PathBuf,
+    actor: String,
+    python_path: Option<PathBuf>,
+    allowed_runner_modules: Vec<String>,
 }
 
-impl Bridge {
-    pub fn spawn(python: &str, lab_root: impl AsRef<Path>, actor: &str) -> Result<Self, SdkError> {
-        Self::spawn_command(Command::new(python), lab_root, actor)
+impl BridgeConfig {
+    pub fn new(root: impl AsRef<Path>) -> Self {
+        Self {
+            python: std::env::var("PYTHON").unwrap_or_else(|_| "python".to_owned()),
+            root: root.as_ref().to_path_buf(),
+            actor: "rust-sdk".into(),
+            python_path: None,
+            allowed_runner_modules: Vec::new(),
+        }
     }
-
-    /// Start the bridge with an explicit Python import root.
-    ///
-    /// This is useful for source checkouts and embedded applications where
-    /// `discolab` has not been installed into the selected Python environment.
-    pub fn spawn_with_python_path(
-        python: &str,
-        lab_root: impl AsRef<Path>,
-        actor: &str,
-        python_path: impl AsRef<Path>,
-    ) -> Result<Self, SdkError> {
-        let mut command = Command::new(python);
-        command.env("PYTHONPATH", python_path.as_ref());
-        Self::spawn_command(command, lab_root, actor)
+    pub fn python(mut self, python: impl Into<String>) -> Self {
+        self.python = python.into();
+        self
     }
-
-    fn spawn_command(
-        mut command: Command,
-        lab_root: impl AsRef<Path>,
-        actor: &str,
-    ) -> Result<Self, SdkError> {
-        let mut child = command
+    pub fn actor(mut self, actor: impl Into<String>) -> Self {
+        self.actor = actor.into();
+        self
+    }
+    /// Import root for source checkouts where `discolab` is not installed.
+    pub fn python_path(mut self, path: impl AsRef<Path>) -> Self {
+        self.python_path = Some(path.as_ref().to_path_buf());
+        self
+    }
+    /// Permit runs that name a Python runner in this module (default: none).
+    pub fn allow_runner_module(mut self, module: impl Into<String>) -> Self {
+        self.allowed_runner_modules.push(module.into());
+        self
+    }
+    pub fn spawn(self) -> Result<Bridge, SdkError> {
+        let mut command = Command::new(&self.python);
+        if let Some(path) = &self.python_path {
+            command.env("PYTHONPATH", path);
+        }
+        command
             .args(["-m", "discolab.rpc", "--root"])
-            .arg(lab_root.as_ref())
-            .args(["--actor", actor])
+            .arg(&self.root)
+            .args(["--actor", &self.actor]);
+        for module in &self.allowed_runner_modules {
+            command.args(["--allow-runner-module", module]);
+        }
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -204,12 +242,76 @@ impl Bridge {
             .stdout
             .take()
             .ok_or_else(|| SdkError::Protocol("bridge stdout unavailable".into()))?;
-        Ok(Self {
+        Ok(Bridge {
             child,
             stdin,
             stdout: BufReader::new(stdout),
             next_id: 1,
         })
+    }
+}
+
+pub struct Bridge {
+    child: Child,
+    stdin: ChildStdin,
+    stdout: BufReader<ChildStdout>,
+    next_id: u64,
+}
+
+/// An open evidence run borrowed from a [`Bridge`] inside
+/// [`Bridge::with_research_run`] / [`Bridge::with_resumed_research_run`].
+pub struct ResearchRun<'a> {
+    bridge: &'a mut Bridge,
+    run_id: String,
+}
+
+impl ResearchRun<'_> {
+    pub fn id(&self) -> &str {
+        &self.run_id
+    }
+    pub fn emit(&mut self, artifact: &ArtifactEmission) -> Result<Value, SdkError> {
+        self.bridge.emit_research_artifact(&self.run_id, artifact)
+    }
+    pub fn metric(&mut self, name: &str, value: f64) -> Result<Value, SdkError> {
+        self.bridge
+            .record_research_metric(&self.run_id, name, value, None)
+    }
+    pub fn metric_with_spec(&mut self, spec: &MetricSpec, value: f64) -> Result<Value, SdkError> {
+        self.bridge
+            .record_research_metric(&self.run_id, &spec.name, value, Some(spec))
+    }
+    pub fn consume(&mut self, evaluations: u64) -> Result<Value, SdkError> {
+        self.bridge
+            .consume_research_budget(&self.run_id, evaluations)
+    }
+    pub fn checkpoint(&mut self, state: Value) -> Result<Value, SdkError> {
+        self.bridge.checkpoint_research_run(&self.run_id, state)
+    }
+}
+
+impl Bridge {
+    pub fn spawn(python: &str, lab_root: impl AsRef<Path>, actor: &str) -> Result<Self, SdkError> {
+        BridgeConfig::new(lab_root)
+            .python(python)
+            .actor(actor)
+            .spawn()
+    }
+
+    /// Start the bridge with an explicit Python import root.
+    ///
+    /// This is useful for source checkouts and embedded applications where
+    /// `discolab` has not been installed into the selected Python environment.
+    pub fn spawn_with_python_path(
+        python: &str,
+        lab_root: impl AsRef<Path>,
+        actor: &str,
+        python_path: impl AsRef<Path>,
+    ) -> Result<Self, SdkError> {
+        BridgeConfig::new(lab_root)
+            .python(python)
+            .actor(actor)
+            .python_path(python_path)
+            .spawn()
     }
 
     pub fn call(&mut self, method: &str, params: Value) -> Result<Value, SdkError> {
@@ -255,6 +357,9 @@ impl Bridge {
             .ok_or_else(|| SdkError::Protocol("successful response omitted result".into()))
     }
 
+    pub fn describe(&mut self) -> Result<Value, SdkError> {
+        self.call("describe", json!({}))
+    }
     pub fn initialize(&mut self) -> Result<Value, SdkError> {
         self.call("initialize", json!({}))
     }
@@ -330,8 +435,10 @@ impl Bridge {
         self.call("register_hypothesis", hypothesis)
     }
 
+    /// Validates the spec locally, then opens a run in the sidecar.
     pub fn begin_research_run(&mut self, spec: &ResearchExperimentSpec) -> Result<Value, SdkError> {
-        self.call("research.begin", json!({"spec": spec.as_json()}))
+        spec.validate()?;
+        self.call("research.begin", json!({"spec": spec.to_json()}))
     }
 
     pub fn emit_research_artifact(
@@ -360,7 +467,7 @@ impl Bridge {
             "research.metric",
             json!({
                 "run_id": run_id, "name": name, "value": value,
-                "spec": spec.map(MetricSpec::as_json),
+                "spec": spec.map(MetricSpec::to_json),
             }),
         )
     }
@@ -376,6 +483,33 @@ impl Bridge {
         )
     }
 
+    pub fn checkpoint_research_run(
+        &mut self,
+        run_id: &str,
+        state: Value,
+    ) -> Result<Value, SdkError> {
+        self.call(
+            "research.checkpoint",
+            json!({"run_id": run_id, "state": state}),
+        )
+    }
+
+    pub fn resume_research_run(&mut self, run_id: &str) -> Result<Value, SdkError> {
+        self.call("research.resume", json!({"run_id": run_id}))
+    }
+
+    pub fn fail_research_run(
+        &mut self,
+        run_id: &str,
+        error_type: &str,
+        message: &str,
+    ) -> Result<Value, SdkError> {
+        self.call(
+            "research.fail",
+            json!({"run_id": run_id, "error_type": error_type, "message": message}),
+        )
+    }
+
     pub fn finalize_research_run(&mut self, run_id: &str) -> Result<Value, SdkError> {
         self.call("research.finalize", json!({"run_id": run_id}))
     }
@@ -386,6 +520,10 @@ impl Bridge {
 
     pub fn validate_research_run(&mut self, run_id: &str) -> Result<Value, SdkError> {
         self.call("research.validate", json!({"run_id": run_id}))
+    }
+
+    pub fn list_research_runs(&mut self, filter: &RunFilter) -> Result<Value, SdkError> {
+        self.call("research.list", filter.to_json())
     }
 
     pub fn compare_research_runs(&mut self, left: &str, right: &str) -> Result<Value, SdkError> {
@@ -403,8 +541,98 @@ impl Bridge {
         )
     }
 
+    pub fn reject_research_run(&mut self, run_id: &str, reason: &str) -> Result<Value, SdkError> {
+        self.call(
+            "research.reject",
+            json!({"run_id": run_id, "reason": reason}),
+        )
+    }
+
     pub fn reproduce_research_run(&mut self, run_id: &str) -> Result<Value, SdkError> {
         self.call("research.reproduce", json!({"run_id": run_id}))
+    }
+
+    pub fn research_lineage(&mut self) -> Result<Value, SdkError> {
+        self.call("research.lineage", json!({}))
+    }
+
+    /// Writes `<lab root>/bundles/<name>.zip`; `name` must be a plain name.
+    pub fn export_research_bundle(
+        &mut self,
+        run_ids: &[&str],
+        name: &str,
+    ) -> Result<Value, SdkError> {
+        self.call(
+            "research.export_bundle",
+            json!({"run_ids": run_ids, "name": name}),
+        )
+    }
+
+    pub fn verify_research_bundle(&mut self, name: &str) -> Result<Value, SdkError> {
+        self.call("research.verify_bundle", json!({"name": name}))
+    }
+
+    /// Open a run, give it to `body`, and finalize it when `body` succeeds.
+    /// Any error from `body` or from finalization records the run as failed
+    /// before being returned (the Rust counterpart of Python's
+    /// `with store.begin(spec) as run:`). Returns `body`'s value and the
+    /// validation report.
+    pub fn with_research_run<T, F>(
+        &mut self,
+        spec: &ResearchExperimentSpec,
+        body: F,
+    ) -> Result<(T, Value), SdkError>
+    where
+        F: FnOnce(&mut ResearchRun<'_>) -> Result<T, SdkError>,
+    {
+        let opened = self.begin_research_run(spec)?;
+        let run_id = opened["run_id"]
+            .as_str()
+            .ok_or_else(|| SdkError::Protocol("research.begin returned no run id".into()))?
+            .to_owned();
+        self.drive(run_id, |run| body(run))
+    }
+
+    /// Reopen an interrupted run from its last checkpoint and continue it in
+    /// `body`, which receives the restored state saved by `checkpoint`.
+    pub fn with_resumed_research_run<T, F>(
+        &mut self,
+        run_id: &str,
+        body: F,
+    ) -> Result<(T, Value), SdkError>
+    where
+        F: FnOnce(&mut ResearchRun<'_>, Value) -> Result<T, SdkError>,
+    {
+        let resumed = self.resume_research_run(run_id)?;
+        let state = resumed.get("state").cloned().unwrap_or(Value::Null);
+        self.drive(run_id.to_owned(), |run| body(run, state))
+    }
+
+    fn drive<T, F>(&mut self, run_id: String, body: F) -> Result<(T, Value), SdkError>
+    where
+        F: FnOnce(&mut ResearchRun<'_>) -> Result<T, SdkError>,
+    {
+        let outcome = {
+            let mut run = ResearchRun {
+                bridge: self,
+                run_id: run_id.clone(),
+            };
+            body(&mut run)
+        };
+        let value = match outcome {
+            Ok(value) => value,
+            Err(error) => {
+                let _ = self.fail_research_run(&run_id, error.kind(), &error.to_string());
+                return Err(error);
+            }
+        };
+        match self.finalize_research_run(&run_id) {
+            Ok(report) => Ok((value, report)),
+            Err(error) => {
+                let _ = self.fail_research_run(&run_id, error.kind(), &error.to_string());
+                Err(error)
+            }
+        }
     }
 }
 
@@ -415,107 +643,91 @@ impl Drop for Bridge {
     }
 }
 
-pub mod kernels {
-    /// Mean fixed-bin Shannon entropy across columns, normalized to [0, 1].
-    pub fn normalized_histogram_entropy(
-        points: &[f64],
-        rows: usize,
-        cols: usize,
-        lower: f64,
-        upper: f64,
-        bins: usize,
-    ) -> Result<f64, &'static str> {
-        if rows == 0 || cols == 0 || points.len() != rows * cols {
-            return Err("invalid matrix shape");
-        }
-        if bins < 2 || !lower.is_finite() || !upper.is_finite() || upper <= lower {
-            return Err("invalid entropy bounds");
-        }
-        let width = (upper - lower) / bins as f64;
-        let mut total = 0.0;
-        let mut counts = vec![0usize; bins];
-        for col in 0..cols {
-            counts.fill(0);
-            for row in 0..rows {
-                let x = points[row * cols + col];
-                if !x.is_finite() {
-                    return Err("non-finite sample");
-                }
-                let idx = if x <= lower {
-                    0
-                } else if x >= upper {
-                    bins - 1
-                } else {
-                    ((x - lower) / width).floor() as usize
-                };
-                counts[idx] += 1;
-            }
-            let h = counts
-                .iter()
-                .filter(|&&n| n > 0)
-                .map(|&n| {
-                    let p = n as f64 / rows as f64;
-                    -p * p.ln()
-                })
-                .sum::<f64>();
-            total += h / (bins as f64).ln();
-        }
-        Ok(total / cols as f64)
-    }
-
-    /// Mean of the worst `tail_probability` fraction (upper tail).
-    pub fn cvar_upper(values: &[f64], tail_probability: f64) -> Result<f64, &'static str> {
-        if values.is_empty() || !(0.0 < tail_probability && tail_probability <= 1.0) {
-            return Err("invalid CVaR input");
-        }
-        let mut sorted = values.to_vec();
-        if sorted.iter().any(|x| !x.is_finite()) {
-            return Err("non-finite sample");
-        }
-        sorted.sort_by(|a, b| b.total_cmp(a));
-        let n = ((sorted.len() as f64 * tail_probability).ceil() as usize).max(1);
-        Ok(sorted[..n].iter().sum::<f64>() / n as f64)
-    }
-
-    /// Wilson score interval for a binomial proportion.
-    pub fn wilson_interval(
-        successes: u64,
-        trials: u64,
-        z: f64,
-    ) -> Result<(f64, f64, f64), &'static str> {
-        if trials == 0 || successes > trials || !z.is_finite() || z <= 0.0 {
-            return Err("invalid Wilson input");
-        }
-        let n = trials as f64;
-        let p = successes as f64 / n;
-        let z2 = z * z;
-        let center = (p + z2 / (2.0 * n)) / (1.0 + z2 / n);
-        let half = z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / (1.0 + z2 / n);
-        Ok((p, (center - half).max(0.0), (center + half).min(1.0)))
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        kernels::*, ArtifactEmission, ArtifactSchema, Bridge, FieldSchema, MetricSpec,
-        ResearchExperimentSpec, ResourceBudget, SdkError,
-    };
-    use serde_json::{json, Value};
-    use std::path::PathBuf;
+    use super::kernels::*;
+    use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    const SCHEMA: &str = include_str!("../../../protocol/v1/schema.json");
+    const CONTRACTS: &str = include_str!("../../../protocol/v1/contract-fixtures.json");
+    const PARITY: &str = include_str!("../../../protocol/v1/parity-fixtures.json");
+
+    fn temp_root(tag: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "eigenbrains-rust-{tag}-{}-{nonce}",
+            std::process::id()
+        ))
+    }
+
+    fn bridge(root: &Path) -> Bridge {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let python_path = manifest.join("../../../discolab").canonicalize().unwrap();
+        BridgeConfig::new(root)
+            .actor("rust-sdk-test")
+            .python_path(python_path)
+            .spawn()
+            .unwrap()
+    }
+
+    fn observation_spec(seed: i64) -> ResearchExperimentSpec {
+        ResearchExperimentSpec::builder(
+            "simulation",
+            "The native client records validated evidence.",
+            "rust-inline-protocol",
+        )
+        .seed(seed)
+        .parameter("iterations", json!(1))
+        .output(
+            ArtifactSchema::table("observations", 1).field(
+                FieldSchema::number("value")
+                    .unit("score")
+                    .role("observation")
+                    .minimum(0.0),
+            ),
+        )
+        .primary_metric(MetricSpec::new("runtime", "seconds").primary().minimum(0.0))
+        .max_evaluations(4)
+        .build()
+        .unwrap()
+    }
+
     #[test]
-    fn entropy_extremes() {
+    fn entropy_extremes_and_parity_fixture() {
         assert_eq!(
             normalized_histogram_entropy(&[0.0; 8], 4, 2, -1.0, 1.0, 4).unwrap(),
             0.0
         );
-        let spread = [-0.9, -0.9, -0.3, -0.3, 0.3, 0.3, 0.9, 0.9];
-        assert!(
-            (normalized_histogram_entropy(&spread, 4, 2, -1.0, 1.0, 4).unwrap() - 1.0).abs()
-                < 1e-12
-        );
+        let fixture: Value = serde_json::from_str(PARITY).unwrap();
+        let e = &fixture["entropy"];
+        let points: Vec<f64> = e["points_row_major"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_f64().unwrap())
+            .collect();
+        let got = normalized_histogram_entropy(
+            &points,
+            e["rows"].as_u64().unwrap() as usize,
+            e["cols"].as_u64().unwrap() as usize,
+            e["lower"].as_f64().unwrap(),
+            e["upper"].as_f64().unwrap(),
+            e["bins"].as_u64().unwrap() as usize,
+        )
+        .unwrap();
+        assert!((got - e["expected"].as_f64().unwrap()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn pairwise_sum_matches_reference_blocks() {
+        let values: Vec<f64> = (0..300).map(|i| 1.0 / (i as f64 + 1.0)).collect();
+        let naive: f64 = values.iter().sum();
+        assert!((pairwise_sum(&values) - naive).abs() < 1e-12);
+        assert_eq!(pairwise_sum(&[1.0, 2.0, 3.0]), 6.0);
     }
 
     #[test]
@@ -528,22 +740,151 @@ mod tests {
     }
 
     #[test]
-    fn python_bridge_round_trip_preserves_remote_errors() {
-        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let python_path = manifest.join("../../../discolab").canonicalize().unwrap();
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let lab_root = std::env::temp_dir().join(format!(
-            "eigenbrains-rust-sdk-{}-{nonce}",
-            std::process::id(),
-        ));
-        let python = std::env::var("PYTHON").unwrap_or_else(|_| "python".to_owned());
-        let mut bridge =
-            Bridge::spawn_with_python_path(&python, &lab_root, "rust-sdk-test", &python_path)
-                .unwrap();
+    fn npy_reader_parses_numpy_v1_headers_and_refuses_other_dtypes() {
+        let mut header = "{'descr': '<f8', 'fortran_order': False, 'shape': (2, 3), }".to_string();
+        while !(10 + header.len() + 1).is_multiple_of(64) {
+            header.push(' ');
+        }
+        header.push('\n');
+        let mut bytes = b"\x93NUMPY\x01\x00".to_vec();
+        bytes.extend_from_slice(&(header.len() as u16).to_le_bytes());
+        bytes.extend_from_slice(header.as_bytes());
+        for v in [1.0f64, 2.0, 3.0, 4.0, 5.0, 6.5] {
+            bytes.extend_from_slice(&v.to_le_bytes());
+        }
+        let array = npy::parse_f64(&bytes).unwrap();
+        assert_eq!(array.shape, vec![2, 3]);
+        assert_eq!(array.data[5], 6.5);
+        let mut wrong = bytes.clone();
+        let at = wrong.windows(3).position(|w| w == b"<f8").unwrap();
+        wrong[at + 2] = b'4';
+        assert!(npy::parse_f64(&wrong).is_err());
+        assert!(npy::parse_f64(&bytes[..bytes.len() - 1]).is_err());
+    }
 
+    #[test]
+    fn client_methods_match_schema_and_contract_fixtures() {
+        let schema: Value = serde_json::from_str(SCHEMA).unwrap();
+        let declared: Vec<&str> = schema["$defs"]["request"]["properties"]["method"]["enum"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert_eq!(declared, METHODS);
+        let contracts: Value = serde_json::from_str(CONTRACTS).unwrap();
+        let methods: Vec<&str> = contracts["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect();
+        assert_eq!(methods, METHODS);
+    }
+
+    #[test]
+    fn canonical_spec_round_trips_and_builder_matches_python() {
+        let contracts: Value = serde_json::from_str(CONTRACTS).unwrap();
+        let canonical = &contracts["canonical_spec"];
+        let parsed = ResearchExperimentSpec::from_json(canonical).unwrap();
+        assert_eq!(&parsed.to_json(), canonical);
+
+        let built = ResearchExperimentSpec::builder(
+            "optimization",
+            "Population entropy adds early-warning information beyond fitness history.",
+            "protocols/early-warning-v1.yaml",
+        )
+        .seed(2026)
+        .parameter("population", json!(50))
+        .parameter("landscape", json!("rastrigin"))
+        .parameter("rates", json!([0.5, 1.0, 2.0]))
+        .parameter("nested", json!({"horizon": 10}))
+        .output(
+            ArtifactSchema::table("trajectory", 1)
+                .field(
+                    FieldSchema::integer("generation")
+                        .unit("generations")
+                        .role("index")
+                        .minimum(0.0),
+                )
+                .field(
+                    FieldSchema::number("best_error")
+                        .unit("objective")
+                        .role("observation")
+                        .minimum(0.0),
+                )
+                .field(
+                    FieldSchema::number("entropy")
+                        .unit("normalized_entropy")
+                        .role("observation")
+                        .minimum(0.0)
+                        .maximum(1.0),
+                )
+                .field(
+                    FieldSchema::number("recovery")
+                        .unit("generations")
+                        .role("outcome")
+                        .nullable(true)
+                        .minimum(0.0)
+                        .censoring("right"),
+                )
+                .field(FieldSchema::string("landscape").role("stratum"))
+                .field(FieldSchema::boolean("improved").role("label")),
+        )
+        .output(
+            ArtifactSchema::array("populations", 2, "float64")
+                .ndim(3)
+                .unit("decision_space")
+                .role("state"),
+        )
+        .output(ArtifactSchema::json("summary", 1).role("analysis"))
+        .primary_metric(
+            MetricSpec::new("delta_auroc", "auroc")
+                .primary()
+                .minimum(-1.0)
+                .maximum(1.0),
+        )
+        .budget(ResourceBudget::default().evaluations(100000).seconds(600.0))
+        .build()
+        .unwrap();
+        assert_eq!(&built.to_json(), canonical);
+    }
+
+    #[test]
+    fn every_invalid_contract_case_is_rejected_like_python() {
+        let contracts: Value = serde_json::from_str(CONTRACTS).unwrap();
+        for case in contracts["invalid_specs"].as_array().unwrap() {
+            let mut spec = contracts["canonical_spec"].clone();
+            let path = case["path"].as_array().unwrap();
+            let mut node = &mut spec;
+            for key in &path[..path.len() - 1] {
+                node = match key {
+                    Value::String(k) => node.get_mut(k.as_str()).unwrap(),
+                    Value::Number(i) => node.get_mut(i.as_u64().unwrap() as usize).unwrap(),
+                    _ => unreachable!(),
+                };
+            }
+            match path.last().unwrap() {
+                Value::String(k) => node[k.as_str()] = case["value"].clone(),
+                Value::Number(i) => node[i.as_u64().unwrap() as usize] = case["value"].clone(),
+                _ => unreachable!(),
+            }
+            assert!(
+                ResearchExperimentSpec::from_json(&spec).is_err(),
+                "accepted invalid case: {}",
+                case["case"]
+            );
+        }
+        assert!(matches!(
+            ResearchExperimentSpec::builder("x", "h", "p").build(),
+            Err(SdkError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn python_bridge_round_trip_preserves_remote_errors() {
+        let lab_root = temp_root("lab");
+        let mut bridge = bridge(&lab_root);
         bridge.initialize().unwrap();
         let proposed = bridge
             .propose(json!({
@@ -564,71 +905,12 @@ mod tests {
             .unwrap();
         assert_eq!(bridge.state().unwrap()["selected"], experiment_id);
         assert!(!bridge.events().unwrap().as_array().unwrap().is_empty());
-
-        let metric = MetricSpec {
-            name: "runtime".into(),
-            unit: "seconds".into(),
-            role: "primary".into(),
-            minimum: Some(0.0),
-            maximum: None,
-            censoring: None,
-        };
-        let spec = ResearchExperimentSpec {
-            capability: "simulation".into(),
-            hypothesis: "The native client records validated evidence.".into(),
-            protocol: "rust-inline-protocol".into(),
-            parameters: json!({"iterations": 1}),
-            seed: 7,
-            outputs: vec![ArtifactSchema {
-                name: "observations".into(),
-                version: 1,
-                kind: "table".into(),
-                fields: vec![FieldSchema {
-                    name: "value".into(),
-                    dtype: "number".into(),
-                    unit: Some("score".into()),
-                    role: Some("observation".into()),
-                    nullable: false,
-                    minimum: Some(0.0),
-                    maximum: None,
-                    censoring: None,
-                }],
-                dtype: None,
-                ndim: None,
-                unit: None,
-                role: None,
-                allow_extra_fields: false,
-            }],
-            primary_metric: metric,
-            budget: ResourceBudget {
-                max_evaluations: Some(1),
-                max_seconds: None,
-            },
-            runner: None,
-            inputs: json!({}),
-            reproduction_of: None,
-        };
-        let opened = bridge.begin_research_run(&spec).unwrap();
-        let research_id = opened["run_id"].as_str().unwrap();
-        bridge.consume_research_budget(research_id, 1).unwrap();
-        bridge
-            .emit_research_artifact(
-                research_id,
-                &ArtifactEmission {
-                    name: "observations".into(),
-                    kind: "table".into(),
-                    value: json!([{"value": 1.0}]),
-                    schema: "observations.v1".into(),
-                    stage: "raw".into(),
-                    parents: vec![],
-                },
-            )
-            .unwrap();
-        bridge
-            .record_research_metric(research_id, "runtime", 0.01, None)
-            .unwrap();
-        let validation = bridge.finalize_research_run(research_id).unwrap();
-        assert_eq!(validation["valid"], true);
+        let described = bridge.describe().unwrap();
+        assert_eq!(described["runner_policy"], "none");
+        assert_eq!(
+            described["methods"].as_array().unwrap().len(),
+            METHODS.len()
+        );
 
         match bridge.call("not-a-method", json!({})) {
             Err(SdkError::Remote { code, message }) => {
@@ -637,8 +919,89 @@ mod tests {
             }
             other => panic!("expected structured remote error, got {other:?}"),
         }
-
         drop(bridge);
         std::fs::remove_dir_all(lab_root).unwrap();
+    }
+
+    #[test]
+    fn scoped_runs_lifecycle_checkpoint_resume_and_bundles() {
+        let root = temp_root("evidence");
+        let mut bridge = bridge(&root);
+
+        let (rows, report) = bridge
+            .with_research_run(&observation_spec(7), |run| {
+                run.consume(1)?;
+                run.emit(&ArtifactEmission::table(
+                    "observations",
+                    "observations.v1",
+                    json!([{"value": 1.0}]),
+                ))?;
+                run.metric("runtime", 0.01)?;
+                Ok(1)
+            })
+            .unwrap();
+        assert_eq!(rows, 1);
+        assert_eq!(report["valid"], true);
+        let accepted_id = report["run_id"].as_str().unwrap().to_owned();
+
+        let failed = bridge.with_research_run(&observation_spec(8), |run| {
+            run.consume(1)?;
+            Err::<(), _>(SdkError::Invalid("simulated client failure".into()))
+        });
+        assert!(matches!(failed, Err(SdkError::Invalid(_))));
+        let failed_runs = bridge
+            .list_research_runs(&RunFilter {
+                status: Some("failed".into()),
+                ..RunFilter::default()
+            })
+            .unwrap();
+        assert_eq!(failed_runs.as_array().unwrap().len(), 1);
+        assert_eq!(failed_runs[0]["seed"], 8);
+
+        // Interrupt a run after a checkpoint, then continue it from a new bridge process.
+        let opened = bridge.begin_research_run(&observation_spec(9)).unwrap();
+        let interrupted = opened["run_id"].as_str().unwrap().to_owned();
+        bridge.consume_research_budget(&interrupted, 2).unwrap();
+        bridge
+            .checkpoint_research_run(&interrupted, json!({"cursor": 2}))
+            .unwrap();
+        drop(bridge);
+        let mut bridge = super::tests::bridge(&root);
+        let (cursor, resumed) = bridge
+            .with_resumed_research_run(&interrupted, |run, state| {
+                run.emit(&ArtifactEmission::table(
+                    "observations",
+                    "observations.v1",
+                    json!([{"value": 2.0}]),
+                ))?;
+                run.metric("runtime", 0.02)?;
+                Ok(state["cursor"].as_i64().unwrap())
+            })
+            .unwrap();
+        assert_eq!(cursor, 2);
+        assert_eq!(resumed["status"], "validated");
+
+        bridge
+            .accept_research_run(&accepted_id, "registered checks passed")
+            .unwrap();
+        let rejected = bridge
+            .reject_research_run(&interrupted, "exercise rejection")
+            .unwrap();
+        assert_eq!(rejected["status"], "rejected_as_evidence");
+        match bridge.accept_research_run(&interrupted, "too late") {
+            Err(SdkError::Remote { code, .. }) => assert_eq!(code, "EvidenceError"),
+            other => panic!("decisions must be terminal, got {other:?}"),
+        }
+        let bundle = bridge
+            .export_research_bundle(&[accepted_id.as_str(), interrupted.as_str()], "rust-test")
+            .unwrap();
+        let verified = bridge.verify_research_bundle("rust-test").unwrap();
+        assert_eq!(verified["valid"], true);
+        assert_eq!(verified["content_sha256"], bundle["content_sha256"]);
+        assert!(bridge
+            .export_research_bundle(&[accepted_id.as_str()], "../escape")
+            .is_err());
+        drop(bridge);
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
