@@ -122,3 +122,14 @@ def test_rate_matched_control_spec_validates(tmp_path):
         lab.propose_experiment(spec, "designer", tmp_path)
     spec["controllers"].append("B0_fixed_x0.8")
     assert lab.propose_experiment(spec, "designer", tmp_path)["stage"] == "development"
+
+
+def test_coupling_never_decides_status(tmp_path):
+    lab.init_lab(tmp_path)
+    lab.propose_experiment(PRED, "designer", tmp_path)
+    lab.score_experiments("designer", tmp_path)
+    lab.select_experiment("E1", "highest utility", "pi", tmp_path)
+    lab.run_selected_experiment("pi", tmp_path)
+    upd = lab.record_analysis("E1", "interpretation", [], "critic", tmp_path)
+    coupled = [u for u in upd["updates"] if u["experiment"] is None]
+    assert coupled and all(u["status"] == "open" for u in coupled)

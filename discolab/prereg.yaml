@@ -1,10 +1,30 @@
 # discolab pre-registration — frozen before any confirmatory or comparative run.
 # Changing anything below after the first experiment requires a new prereg
 # version; the ledger records the SHA-256 of this file with every event.
-version: 2
+version: 3
 frozen_on: "2026-10-04"
 
 changelog:
+  - version: 3
+    date: "2026-10-04"
+    reason: >-
+      Run 2 (under v2, results/run2_prereg_v2) labelled H3 "refuted" (posterior
+      0.019) from an inconclusive verdict whose CI still included effects above
+      the SESOI; the PI flagged it. Cause: H1 was a single assumed effect size,
+      so "inconclusive" ruled out that size, not every meaningful effect.
+      Hypotheses, metrics, splits and verdict definitions are unchanged.
+    deviations:
+      - >-
+        Composite alternative. Under H1 the standardised effect is a practically
+        meaningful effect of uncertain size, SESOI + HalfNormal(scale = assumed
+        effect), rather than one point value; outcome likelihoods average over
+        it (40-node quadrature).
+      - >-
+        Status consistency. A hypothesis is "supported" only if its posterior is
+        >= 0.9 AND at least one direct verdict was "supported"; "refuted" only if
+        the posterior is <= 0.1 AND at least one direct verdict was "refuted".
+        Coupled priors move the posterior of untested hypotheses but never
+        decide their status.
   - version: 2
     date: "2026-10-04"
     reason: >-
@@ -189,7 +209,9 @@ decision_rules:
     supported: 95% CI excludes zero in the hypothesised direction
     refuted: 95% CI lies entirely inside (-inf, SESOI) for the hypothesised direction
     inconclusive: otherwise
-  hypothesis_status: posterior >= 0.9 supported, <= 0.1 refuted, else open
+  hypothesis_status: >-
+    supported if posterior >= 0.9 and some direct verdict was supported;
+    refuted if posterior <= 0.1 and some direct verdict was refuted; else open
 
 planner_policy:   # deterministic experiment selection (EigenBrains constrained utility)
   utility: EIG_bits - eta * wall_seconds - lambda_heldout * heldout_landscapes_used
@@ -198,7 +220,8 @@ planner_policy:   # deterministic experiment selection (EigenBrains constrained 
   outcome_model: >-
     standardised estimate ~ N(delta, 1/n) over n independent units;
     P(supported) = Phi(delta*sqrt(n) - z); P(refuted) = Phi((s - delta)*sqrt(n) - z);
-    delta = assumed effect under H1 and 0 under H0; s = standardised SESOI
+    delta = s + HalfNormal(scale = assumed effect) under H1 (likelihoods
+    averaged over it) and delta = 0 under H0; s = standardised SESOI
   assumed_standardised_effect: 0.5        # used until a measurement exists
   min_assumed_standardised_effect: 0.1    # floor for H1's assumed effect
   default_sesoi_standardised: 0.2         # until a family measurement gives the per-unit SD

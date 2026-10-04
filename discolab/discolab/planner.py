@@ -23,6 +23,7 @@ from __future__ import annotations
 import math
 import statistics
 
+import numpy as np
 from scipy.stats import norm
 
 from .experiments import ExperimentSpec, estimate_cost, run_plan, validate_spec
@@ -50,9 +51,27 @@ def outcome_probs(delta: float, n: int, sesoi: float, alpha: float) -> dict[str,
     return {k: v / total for k, v in probs.items()}
 
 
+# Gauss-Legendre nodes mapped to (0, 1) for the half-normal mixture over effect sizes (prereg v3).
+_GL_X, _GL_W = np.polynomial.legendre.leggauss(40)
+_QUAD_U, _QUAD_W = (_GL_X + 1.0) / 2.0, _GL_W / 2.0
+
+
 def likelihood_table(delta1: float, n: int, sesoi: float, alpha: float) -> dict[str, tuple[float, float]]:
-    """verdict -> (P(o|H1), P(o|H0))."""
-    h1 = outcome_probs(delta1, n, sesoi, alpha)
+    """verdict -> (P(o|H1), P(o|H0)).
+
+    H1 is composite (prereg v3): a practically meaningful effect of uncertain
+    size, delta = SESOI + HalfNormal(scale = assumed effect). P(o|H1) averages
+    the outcome probabilities over that prior, so an inconclusive verdict
+    counts against H1 in proportion to the design's sample size without
+    deciding it, and a refuted verdict (CI below the SESOI) is decisive.
+    """
+    h1 = {o: 0.0 for o in VERDICTS}
+    for u, w in zip(_QUAD_U, _QUAD_W):
+        # inverse-CDF quadrature: half-normal quantile = scale * Phi^{-1}((1 + u) / 2)
+        delta = sesoi + delta1 * float(norm.ppf(0.5 + 0.5 * u))
+        p = outcome_probs(delta, n, sesoi, alpha)
+        for o in VERDICTS:
+            h1[o] += w * p[o]
     h0 = outcome_probs(0.0, n, sesoi, alpha)
     return {o: (h1[o], h0[o]) for o in VERDICTS}
 
@@ -221,20 +240,28 @@ def belief_updates(state: dict, prereg: dict, exp_id: str) -> list[dict]:
         table = likelihood_table(planned["assumed_effect"], planned["n_units"], planned["sesoi_std"], alpha)
         p = posterior(q, v["verdict"], table)
         new_post[hid] = p
+        verdicts_so_far = [e["verdict"] for e in hyps[hid]["history"] if e.get("experiment")] + [v["verdict"]]
         updates.append({"id": hid, "experiment": exp_id, "verdict": v["verdict"], "prior": q,
                         "likelihoods": {"H1": table[v["verdict"]][0], "H0": table[v["verdict"]][1]},
-                        "posterior": p, "status": _status(p), "effect": v["standardised_effect"],
+                        "posterior": p, "status": _status(p, verdicts_so_far), "effect": v["standardised_effect"],
                         "stage": v["stage"], "measure": v["measure"], "interval": v["effect"]})
-    # propagate pre-registered prior couplings to hypotheses not yet tested directly
+    # propagate pre-registered prior couplings to hypotheses not yet tested directly;
+    # a coupling moves the prior but can never decide a status (prereg v3)
     for hid, h in hyps.items():
         rule = h.get("prior_rule")
         if rule and not any(e.get("experiment") for e in h["history"]) and rule["depends_on"] in new_post:
             q = new_post[rule["depends_on"]]
             p = q * rule["if_true"] + (1 - q) * rule["if_false"]
-            updates.append({"id": hid, "experiment": None, "verdict": None, "posterior": p, "status": _status(p),
-                            "reason": f"pre-registered prior coupling to {rule['depends_on']}"})
+            updates.append({"id": hid, "experiment": None, "verdict": None, "posterior": p, "status": "open",
+                            "reason": f"pre-registered prior coupling to {rule['depends_on']} (untested)"})
     return updates
 
 
-def _status(p: float) -> str:
-    return "supported" if p >= SUPPORTED_AT else "refuted" if p <= REFUTED_AT else "open"
+def _status(p: float, verdicts: list[str]) -> str:
+    """Decided status needs both the posterior threshold and a matching direct verdict (prereg v3):
+    a hypothesis is never called refuted on inconclusive evidence, nor supported without support."""
+    if p >= SUPPORTED_AT and "supported" in verdicts:
+        return "supported"
+    if p <= REFUTED_AT and "refuted" in verdicts:
+        return "refuted"
+    return "open"

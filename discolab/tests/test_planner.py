@@ -73,3 +73,21 @@ def test_sesoi_uses_measured_unit_scale():
     assert s == pytest.approx(0.01 / (0.025 / 0.5)) and "measured" in src
     s0, src0 = sesoi_standardised("H1", {"H1": _hyp("H1", "prediction")}, pr)
     assert s0 == pr["planner_policy"]["default_sesoi_standardised"]
+
+
+def test_run2_h3_case_is_not_refuted_by_an_inconclusive_verdict():
+    # Regression for run 2 (prereg v2): H3 went 0.5 -> 0.019 ("refuted") on an inconclusive verdict.
+    from discolab.planner import _status
+    t = likelihood_table(0.5, 72, 0.2, ALPHA)
+    p = posterior(0.5, "inconclusive", t)
+    assert 0.1 < p < 0.5  # inconclusive is evidence against H1, but not decisive
+    assert _status(0.05, ["inconclusive"]) == "open"
+    assert _status(0.05, ["refuted"]) == "refuted"
+    assert _status(0.95, ["supported"]) == "supported"
+    assert _status(0.95, ["inconclusive"]) == "open"
+
+
+def test_inconclusive_weighs_more_with_larger_designs_but_refuted_is_decisive():
+    small, large = likelihood_table(0.5, 24, 0.2, ALPHA), likelihood_table(0.5, 120, 0.2, ALPHA)
+    assert posterior(0.5, "inconclusive", large) < posterior(0.5, "inconclusive", small) < 0.5
+    assert posterior(0.5, "refuted", small) < 0.1 and posterior(0.5, "supported", small) > 0.9
