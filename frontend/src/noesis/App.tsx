@@ -18,7 +18,7 @@ import { Home } from './views/Home';
 import { LabBar } from './lab/LabBar';
 import { LabProvider, useLab } from './lab/LabContext';
 import { LiveApproval, LiveDiscovery, LiveHypotheses, LiveRecord } from './lab/LiveViews';
-import noesisLogo from '../assets/logo-noesis.png.asset.json';
+import noesisLogo from '../assets/logo_neosis.png';
 
 const NAV: { id: AppView; label: string; icon: typeof IconHome; reveal: number }[] = [
   { id: 'home', label: 'Home', icon: IconHome, reveal: 0 },
@@ -127,7 +127,7 @@ function AppShell() {
       <div className={isStory ? 'app-frame is-story' : 'app-frame'} data-chapter={isStory ? storyChapter : undefined}>
         <a className="skip" href="#workspace">Skip to workspace</a>
         <aside className="sidebar material-side">
-          <div className="brand"><span className="brand-mark"><img src={noesisLogo.url} alt="" /></span><strong>Noesis</strong></div>
+          <div className="brand"><span className="brand-mark"><img src={noesisLogo} alt="" /></span><strong>Noesis</strong></div>
           <nav className="side-nav" aria-label="Primary">
             {NAV.map((item) => {
               const Icon = item.icon;
