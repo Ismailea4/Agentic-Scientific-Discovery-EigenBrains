@@ -1,5 +1,9 @@
 # EigenBrains codebase guide
 
+For the cross-component topology, research SDK, and discovery-lab relationship,
+start with [System architecture](SYSTEM_ARCHITECTURE.md). This file focuses on
+the FastAPI/React control plane.
+
 EigenBrains is an evidence-driven control plane for selecting and executing AI-agent architectures. The product combines a cinematic React interface, a typed FastAPI service, capability and fallback policy enforcement, provider-neutral model calls, and an experimental laboratory for measuring quality, cost, latency, availability, and downside risk.
 
 The central design rule is simple: measurements may influence a decision, but they cannot override a hard capability, privacy, or authorization constraint.
@@ -97,14 +101,14 @@ These states must not be silently mixed. In particular, showcase fixtures are no
 ## Local development
 
 ```powershell
-# Backend
-cd F:\hack7\backend
+# From the repository root: backend
+cd .\backend
 python -m pip install -r requirements-dev.txt
 python -m uvicorn app.main:app --reload --port 8000
 
-# Frontend, in another terminal
-cd F:\hack7\frontend
-npm install
+# From the repository root: frontend, in another terminal
+cd .\frontend
+npm ci
 npm run dev
 ```
 

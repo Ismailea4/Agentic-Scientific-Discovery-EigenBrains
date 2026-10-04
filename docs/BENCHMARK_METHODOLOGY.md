@@ -131,16 +131,19 @@ Wilson intervals are used for proportions. Mean quantities and paired difference
 The existing observations can be inspected and rendered without contacting a provider:
 
 ```powershell
-cd F:\hack7\backend
-python -m app.benchmark.baseline_execute --root F:\hack7 --render-existing-summary
+Push-Location .\backend
+python -m app.benchmark.baseline_execute --root .. --render-existing-summary
+Pop-Location
 ```
 
 The offline test suite is:
 
 ```powershell
-cd F:\hack7\backend
+Push-Location .\backend
 $env:PYTHONPATH='.'
-python -m pytest tests -q --basetemp F:\hack7\.pytest-eigenbrains
+$testRoot = Join-Path (Resolve-Path ..) '.pytest-eigenbrains'
+python -m pytest tests -q --basetemp $testRoot
+Pop-Location
 ```
 
 Do not execute the live baseline module again: the frozen output directory exists, and the runner intentionally refuses to overwrite it or duplicate calls.
@@ -159,7 +162,9 @@ Do not execute the live baseline module again: the frozen output directory exist
 | `benchmark/cases/pre_challenge_baseline_v0_manifest.json` | Frozen protocol, authorization, hashes, and execution ledger. |
 | `benchmark/reports/PRECHALLENGE_BASELINE_V0.md` | Evidence-first human-readable report. |
 
-The legacy filenames in the final two rows are retained because they are part of the frozen evidence ledger. Product-facing language uses “Architecture Baseline v0.”
+The legacy `pre_challenge`/`PRECHALLENGE` filenames in the final two rows are
+immutable identifiers in the frozen evidence ledger; they are not the current
+name of the study. Product-facing language uses “Architecture Baseline v0.”
 
 ## Limitations
 

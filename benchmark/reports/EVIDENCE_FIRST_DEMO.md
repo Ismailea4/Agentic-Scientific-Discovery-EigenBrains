@@ -28,13 +28,24 @@ cost saving versus always-both:  measured saving
 latency saving versus always:    measured saving
 ```
 
-Do not replace missing values with illustrative numbers. Until the compact architecture study runs, render them as `awaiting approved experiment`.
+For the frozen held-out replay (`n=12`), populate this card with quality
+`0.750`, escalation `58.3%`, estimated cost saving `16.0%`, and latency saving
+`35.2%` versus always-both. Display the associated intervals from
+`baseline_v0_summary.json`, not hand-copied approximations. Label the replay
+and provider-backed confirmation separately: the latter executed seven S3
+verifier calls and observed zero rescues and zero damages.
 
 ## Claim ladder
 
-- **Supported now:** the pilot observed different failure-overlap structures among the tested models.
-- **To test next:** selective Qwen -> GPT escalation captures most of the quality/risk benefit of always-both while spending less.
-- **Not yet supported:** every multi-agent architecture beats a single model; all A0-A6 are empirically ranked; critic or verifier value generalizes to the challenge.
+- **Supported now:** the pilot observed different failure-overlap structures;
+  on the frozen held-out replay, selective Qwen -> GPT-OSS matched always-both
+  observed quality while using less estimated cost and latency.
+- **Provider-backed confirmation:** seven S3 verifier calls produced zero
+  rescues and zero damages. This confirms execution mechanics and measured
+  overhead, not an accuracy gain.
+- **Not yet supported:** every multi-agent architecture beats a single model;
+  all A0-A6 are empirically ranked; critic or verifier value generalizes to a
+  new domain; equal observed quality establishes statistical equivalence.
 
 ## Keep off the main stage
 

@@ -9,9 +9,12 @@ instrumentation, optimizer, registry, and API contracts.
   Architecture Baseline v0 corpus with 48 dev, 12 tuning, and
   12 held-out cases; it never generates model outputs.
 - `configs/` contains explicit non-secret limits and statistical choices.
-- `key_status.json` is a secret-free inventory. It remains empty until an
-  authorized credential-validation workflow produces real observations.
-- `artifacts/` and `reports/` are generated locally and ignored by Git.
+- `key_status.json` is a secret-free inventory of the completed provider
+  discovery step. It records statuses and sanitized metadata, never credential
+  values.
+- `artifacts/` and `reports/` contain the intentionally committed evidence and
+  human-readable reports for frozen studies. New exploratory outputs remain
+  local unless an explicit evidence-publication decision includes them.
 - `cache/` stores immutable local run records and is ignored by Git.
 
 The default runner executes only the `dev` split. Tuning and held-out runs

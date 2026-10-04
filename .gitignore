@@ -50,6 +50,9 @@ coverage.xml
 *.lcov
 .hypothesis/
 .pytest_cache/
+.tmp-pytest-*/
+.verification/
+.interop-demo/
 cover/
 
 # Translations
@@ -210,6 +213,10 @@ tempCodeRunnerFile.py
 
 # PyPI configuration file
 .pypirc
+
+# Local language toolchain caches
+.julia-depot/
+.npm-cache/
 
 # Marimo
 marimo/_static/

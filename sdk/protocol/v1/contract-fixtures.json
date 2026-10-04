@@ -1,0 +1,357 @@
+{
+  "generated_by": "discolab Python authoritative implementation (ExperimentSpecV2)",
+  "protocol_version": "1.0",
+  "name_pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+  "methods": [
+    "describe",
+    "initialize",
+    "state",
+    "events",
+    "propose",
+    "score",
+    "select",
+    "run",
+    "abort",
+    "result",
+    "analyze",
+    "decide",
+    "register_hypothesis",
+    "research.begin",
+    "research.emit",
+    "research.metric",
+    "research.consume",
+    "research.checkpoint",
+    "research.resume",
+    "research.fail",
+    "research.finalize",
+    "research.inspect",
+    "research.validate",
+    "research.list",
+    "research.compare",
+    "research.accept",
+    "research.reject",
+    "research.reproduce",
+    "research.lineage",
+    "research.export_bundle",
+    "research.verify_bundle"
+  ],
+  "canonical_spec": {
+    "spec_version": 2,
+    "capability": "optimization",
+    "hypothesis": "Population entropy adds early-warning information beyond fitness history.",
+    "protocol": "protocols/early-warning-v1.yaml",
+    "parameters": {
+      "population": 50,
+      "landscape": "rastrigin",
+      "rates": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "nested": {
+        "horizon": 10
+      }
+    },
+    "seed": 2026,
+    "outputs": [
+      {
+        "name": "trajectory",
+        "version": 1,
+        "kind": "table",
+        "fields": [
+          {
+            "name": "generation",
+            "dtype": "integer",
+            "unit": "generations",
+            "role": "index",
+            "nullable": false,
+            "minimum": 0.0,
+            "maximum": null,
+            "censoring": null
+          },
+          {
+            "name": "best_error",
+            "dtype": "number",
+            "unit": "objective",
+            "role": "observation",
+            "nullable": false,
+            "minimum": 0.0,
+            "maximum": null,
+            "censoring": null
+          },
+          {
+            "name": "entropy",
+            "dtype": "number",
+            "unit": "normalized_entropy",
+            "role": "observation",
+            "nullable": false,
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "censoring": null
+          },
+          {
+            "name": "recovery",
+            "dtype": "number",
+            "unit": "generations",
+            "role": "outcome",
+            "nullable": true,
+            "minimum": 0.0,
+            "maximum": null,
+            "censoring": "right"
+          },
+          {
+            "name": "landscape",
+            "dtype": "string",
+            "unit": null,
+            "role": "stratum",
+            "nullable": false,
+            "minimum": null,
+            "maximum": null,
+            "censoring": null
+          },
+          {
+            "name": "improved",
+            "dtype": "boolean",
+            "unit": null,
+            "role": "label",
+            "nullable": false,
+            "minimum": null,
+            "maximum": null,
+            "censoring": null
+          }
+        ],
+        "dtype": null,
+        "ndim": null,
+        "unit": null,
+        "role": null,
+        "allow_extra_fields": false,
+        "id": "trajectory.v1"
+      },
+      {
+        "name": "populations",
+        "version": 2,
+        "kind": "array",
+        "fields": [],
+        "dtype": "float64",
+        "ndim": 3,
+        "unit": "decision_space",
+        "role": "state",
+        "allow_extra_fields": false,
+        "id": "populations.v2"
+      },
+      {
+        "name": "summary",
+        "version": 1,
+        "kind": "json",
+        "fields": [],
+        "dtype": null,
+        "ndim": null,
+        "unit": null,
+        "role": "analysis",
+        "allow_extra_fields": false,
+        "id": "summary.v1"
+      }
+    ],
+    "primary_metric": {
+      "name": "delta_auroc",
+      "unit": "auroc",
+      "role": "primary",
+      "minimum": -1.0,
+      "maximum": 1.0,
+      "censoring": null
+    },
+    "budget": {
+      "max_evaluations": 100000,
+      "max_seconds": 600.0
+    },
+    "runner": null,
+    "inputs": {},
+    "reproduction_of": null
+  },
+  "invalid_specs": [
+    {
+      "case": "capability must match the name pattern",
+      "path": [
+        "capability"
+      ],
+      "value": "1optimization"
+    },
+    {
+      "case": "hypothesis cannot be blank",
+      "path": [
+        "hypothesis"
+      ],
+      "value": "   "
+    },
+    {
+      "case": "protocol cannot be empty",
+      "path": [
+        "protocol"
+      ],
+      "value": ""
+    },
+    {
+      "case": "seed must be non-negative",
+      "path": [
+        "seed"
+      ],
+      "value": -1
+    },
+    {
+      "case": "at least one output",
+      "path": [
+        "outputs"
+      ],
+      "value": []
+    },
+    {
+      "case": "output ids must be unique",
+      "path": [
+        "outputs",
+        2,
+        "name"
+      ],
+      "value": "trajectory"
+    },
+    {
+      "case": "schema version must be positive",
+      "path": [
+        "outputs",
+        2,
+        "version"
+      ],
+      "value": 0
+    },
+    {
+      "case": "schema kind must be known",
+      "path": [
+        "outputs",
+        2,
+        "kind"
+      ],
+      "value": "graph"
+    },
+    {
+      "case": "table schemas need fields",
+      "path": [
+        "outputs",
+        0,
+        "fields"
+      ],
+      "value": []
+    },
+    {
+      "case": "array schemas need a dtype",
+      "path": [
+        "outputs",
+        1,
+        "dtype"
+      ],
+      "value": null
+    },
+    {
+      "case": "field dtype must be known",
+      "path": [
+        "outputs",
+        0,
+        "fields",
+        1,
+        "dtype"
+      ],
+      "value": "complex"
+    },
+    {
+      "case": "ranges require a numeric field",
+      "path": [
+        "outputs",
+        0,
+        "fields",
+        4,
+        "minimum"
+      ],
+      "value": 0.0
+    },
+    {
+      "case": "field minimum cannot exceed maximum",
+      "path": [
+        "outputs",
+        0,
+        "fields",
+        2,
+        "minimum"
+      ],
+      "value": 2.0
+    },
+    {
+      "case": "censoring must be known",
+      "path": [
+        "outputs",
+        0,
+        "fields",
+        3,
+        "censoring"
+      ],
+      "value": "sideways"
+    },
+    {
+      "case": "field names must be unique",
+      "path": [
+        "outputs",
+        0,
+        "fields",
+        1,
+        "name"
+      ],
+      "value": "generation"
+    },
+    {
+      "case": "metric needs a unit",
+      "path": [
+        "primary_metric",
+        "unit"
+      ],
+      "value": ""
+    },
+    {
+      "case": "metric role must be known",
+      "path": [
+        "primary_metric",
+        "role"
+      ],
+      "value": "tertiary"
+    },
+    {
+      "case": "metric minimum cannot exceed maximum",
+      "path": [
+        "primary_metric",
+        "minimum"
+      ],
+      "value": 2.0
+    },
+    {
+      "case": "evaluation budget must be positive",
+      "path": [
+        "budget",
+        "max_evaluations"
+      ],
+      "value": 0
+    },
+    {
+      "case": "time budget must be positive",
+      "path": [
+        "budget",
+        "max_seconds"
+      ],
+      "value": -1.0
+    },
+    {
+      "case": "input names must match the name pattern",
+      "path": [
+        "inputs"
+      ],
+      "value": {
+        "bad name": "data.csv"
+      }
+    }
+  ]
+}

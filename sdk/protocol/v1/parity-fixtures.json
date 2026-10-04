@@ -1,0 +1,91 @@
+{
+  "generated_by": "discolab Python authoritative implementation",
+  "tolerance": 1e-10,
+  "entropy": {
+    "points_row_major": [
+      -0.9,
+      -0.9,
+      -0.3,
+      -0.3,
+      0.3,
+      0.3,
+      0.9,
+      0.9
+    ],
+    "rows": 4,
+    "cols": 2,
+    "lower": -1.0,
+    "upper": 1.0,
+    "bins": 4,
+    "expected": 1.0
+  },
+  "cvar_upper": {
+    "values": [
+      1.0,
+      2.0,
+      3.0,
+      4.0
+    ],
+    "tail_probability": 0.5,
+    "expected": 3.5
+  },
+  "wilson": {
+    "successes": 7,
+    "trials": 10,
+    "z": 1.959963984540054,
+    "expected": [
+      0.7,
+      0.39677814746114537,
+      0.8922087325936989
+    ]
+  },
+  "decision_math": {
+    "effect_scale": 0.5,
+    "n": 60,
+    "sesoi": 0.1,
+    "alpha": 0.05,
+    "prior": 0.5,
+    "likelihood_table": {
+      "supported": [
+        0.7551870964686417,
+        0.025
+      ],
+      "inconclusive": [
+        0.24288038407528748,
+        0.857063875602403
+      ],
+      "refuted": [
+        0.0019325194560709787,
+        0.11793612439759693
+      ]
+    },
+    "expected_information_gain_bits": 0.49418960587019645
+  },
+  "auroc": {
+    "scores": [
+      0.1,
+      0.4,
+      0.35,
+      0.8,
+      0.4,
+      0.9,
+      0.2,
+      0.4,
+      0.65,
+      0.05
+    ],
+    "labels": [
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false
+    ],
+    "expected": 0.96
+  }
+}

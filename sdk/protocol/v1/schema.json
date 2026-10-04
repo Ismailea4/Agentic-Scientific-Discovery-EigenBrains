@@ -1,0 +1,409 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eigenbrains.dev/sdk/protocol/v1/schema.json",
+  "title": "EigenBrains SDK JSONL protocol v1",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "method"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "const": "1.0"
+        },
+        "method": {
+          "enum": [
+            "describe",
+            "initialize",
+            "state",
+            "events",
+            "propose",
+            "score",
+            "select",
+            "run",
+            "abort",
+            "result",
+            "analyze",
+            "decide",
+            "register_hypothesis",
+            "research.begin",
+            "research.emit",
+            "research.metric",
+            "research.consume",
+            "research.checkpoint",
+            "research.resume",
+            "research.fail",
+            "research.finalize",
+            "research.inspect",
+            "research.validate",
+            "research.list",
+            "research.compare",
+            "research.accept",
+            "research.reject",
+            "research.reproduce",
+            "research.lineage",
+            "research.export_bundle",
+            "research.verify_bundle"
+          ]
+        },
+        "params": {
+          "type": "object",
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "ok"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "const": "1.0"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "result": {},
+        "error": {
+          "$ref": "#/$defs/error"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "result"
+            ],
+            "not": {
+              "required": [
+                "error"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "error"
+            ],
+            "not": {
+              "required": [
+                "result"
+              ]
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/response"
+    }
+  ],
+  "x-methods": {
+    "describe": {
+      "required": [],
+      "optional": [],
+      "mutating": false
+    },
+    "initialize": {
+      "required": [],
+      "optional": [],
+      "mutating": true
+    },
+    "state": {
+      "required": [],
+      "optional": [],
+      "mutating": false
+    },
+    "events": {
+      "required": [],
+      "optional": [],
+      "mutating": false
+    },
+    "propose": {
+      "required": [
+        "experiment"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "score": {
+      "required": [],
+      "optional": [],
+      "mutating": true
+    },
+    "select": {
+      "required": [
+        "experiment_id",
+        "justification"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "run": {
+      "required": [],
+      "optional": [
+        "confirm_heldout"
+      ],
+      "mutating": true
+    },
+    "abort": {
+      "required": [
+        "experiment_id",
+        "reason"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "result": {
+      "required": [
+        "experiment_id"
+      ],
+      "optional": [],
+      "mutating": false
+    },
+    "analyze": {
+      "required": [
+        "experiment_id",
+        "interpretation"
+      ],
+      "optional": [
+        "threats_to_validity"
+      ],
+      "mutating": true
+    },
+    "decide": {
+      "required": [
+        "decision",
+        "rationale"
+      ],
+      "optional": [
+        "next_experiment"
+      ],
+      "mutating": true
+    },
+    "register_hypothesis": {
+      "required": [
+        "hypothesis_id",
+        "statement",
+        "h0",
+        "family"
+      ],
+      "optional": [
+        "feature_set",
+        "baseline_feature_set",
+        "controller",
+        "comparator"
+      ],
+      "mutating": true
+    },
+    "research.begin": {
+      "required": [
+        "spec"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.emit": {
+      "required": [
+        "run_id",
+        "name",
+        "kind",
+        "value",
+        "schema"
+      ],
+      "optional": [
+        "stage",
+        "parents"
+      ],
+      "mutating": true
+    },
+    "research.metric": {
+      "required": [
+        "run_id",
+        "name",
+        "value"
+      ],
+      "optional": [
+        "spec"
+      ],
+      "mutating": true
+    },
+    "research.consume": {
+      "required": [
+        "run_id"
+      ],
+      "optional": [
+        "evaluations"
+      ],
+      "mutating": true
+    },
+    "research.checkpoint": {
+      "required": [
+        "run_id"
+      ],
+      "optional": [
+        "state"
+      ],
+      "mutating": true
+    },
+    "research.resume": {
+      "required": [
+        "run_id"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.fail": {
+      "required": [
+        "run_id",
+        "error_type",
+        "message"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.finalize": {
+      "required": [
+        "run_id"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.inspect": {
+      "required": [
+        "run_id"
+      ],
+      "optional": [],
+      "mutating": false
+    },
+    "research.validate": {
+      "required": [
+        "run_id"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.list": {
+      "required": [],
+      "optional": [
+        "capability",
+        "status",
+        "seed",
+        "created_after",
+        "created_before"
+      ],
+      "mutating": false
+    },
+    "research.compare": {
+      "required": [
+        "left",
+        "right"
+      ],
+      "optional": [],
+      "mutating": false
+    },
+    "research.accept": {
+      "required": [
+        "run_id",
+        "rationale"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.reject": {
+      "required": [
+        "run_id",
+        "reason"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.reproduce": {
+      "required": [
+        "run_id"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.lineage": {
+      "required": [],
+      "optional": [],
+      "mutating": false
+    },
+    "research.export_bundle": {
+      "required": [
+        "run_ids",
+        "name"
+      ],
+      "optional": [],
+      "mutating": true
+    },
+    "research.verify_bundle": {
+      "required": [
+        "name"
+      ],
+      "optional": [],
+      "mutating": false
+    }
+  },
+  "x-error-codes": {
+    "ValueError": "malformed request, unknown method or parameter, or invalid value",
+    "KeyError": "unknown experiment, or no open research run with that id in this bridge process",
+    "FileNotFoundError": "unknown run, input, or bundle",
+    "FileExistsError": "artifact, metric, or bundle name already used",
+    "PermissionError": "refused by policy (held-out run without confirmation, runner module not allow-listed)",
+    "LedgerError": "refused laboratory transition",
+    "EvidenceError": "refused evidence lifecycle transition (closed, finished, decided, not resumable)",
+    "ValidationError": "evidence violates its declared contract or fails an integrity check",
+    "BudgetExceeded": "cooperative evaluation or wall-time budget exhausted"
+  }
+}

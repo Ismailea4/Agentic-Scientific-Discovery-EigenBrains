@@ -1,0 +1,308 @@
+{
+  "confirmation": {
+    "acceptance_status": "accepted_as_evidence",
+    "bundle": {
+      "content_sha256": "e3fcdbc34f93e31d34873816eed6a6fa45c177ec536fa9b2c6851b7e39ed8908",
+      "path": "research_prototypes/entropy_early_warning/evidence/entropy-early-warning-v1.zip",
+      "verified": true
+    },
+    "corruption_controls": {
+      "bundle_corruption_detected": true,
+      "bundle_error": "bundle verification failed: file research-runs/RUN-2A2C97E306F9/artifacts/raw/run_index.jsonl does not match its manifest hash; run RUN-2A2C97E306F9: artifact run_index hash mismatch",
+      "rejected_control_run": "RUN-CORRUPT-2F052370",
+      "rejected_control_status": "rejected_as_evidence",
+      "run_corruption_detected": true,
+      "run_error": "artifact bootstrap_auroc hash mismatch"
+    },
+    "parity": {
+      "auroc": {
+        "max_abs_difference": 4.440892098500626e-16,
+        "scores": 7,
+        "within_tolerance": true
+      },
+      "entropy": {
+        "bitwise_identical": 600,
+        "max_abs_difference": 0.0,
+        "snapshots": 600,
+        "within_tolerance": true
+      },
+      "passed": true,
+      "tolerance": 1e-12
+    },
+    "registered_result": {
+      "auroc": {
+        "diversity_rule": {
+          "estimate": 0.570677571800531,
+          "high": 0.5853848549667555,
+          "low": 0.5551290516493169
+        },
+        "entropy_only": {
+          "estimate": 0.5522108035617632,
+          "high": 0.5684386227331334,
+          "low": 0.5369062191025626
+        },
+        "fitness": {
+          "estimate": 0.8619671229657622,
+          "high": 0.8696393051224977,
+          "low": 0.853832871540896
+        },
+        "fitness+dispersion": {
+          "estimate": 0.8649959755857171,
+          "high": 0.8726355834298751,
+          "low": 0.8569928693299833
+        },
+        "fitness+dispersion+entropy": {
+          "estimate": 0.8559660189730482,
+          "high": 0.8641581523447468,
+          "low": 0.8477713205667546
+        },
+        "fitness+entropy": {
+          "estimate": 0.856091358826559,
+          "high": 0.8642745853217219,
+          "low": 0.8479131812689761
+        },
+        "progress_rate_rule": {
+          "estimate": 0.8827826640340227,
+          "high": 0.8902077184285961,
+          "low": 0.8750629828836644
+        }
+      },
+      "bootstrap": {
+        "interval": "percentile 95%",
+        "resamples": 2000,
+        "rng_stream": "bootstrap",
+        "stratified_by": "landscape",
+        "unit": "(landscape, seed) cluster"
+      },
+      "brier": {
+        "entropy_only": 0.03998862217836094,
+        "fitness": 0.038109063226765716,
+        "fitness+dispersion": 0.03803820041699816,
+        "fitness+dispersion+entropy": 0.037623753032800286,
+        "fitness+entropy": 0.03762450369435458
+      },
+      "contrasts": {
+        "EW1": {
+          "bootstrap_p_two_sided": 0.035,
+          "comparator": "fitness",
+          "estimate": -0.00587576413920321,
+          "high": -0.0003128859989540989,
+          "low": -0.011078896918963646,
+          "model": "fitness+entropy"
+        },
+        "EW2": {
+          "bootstrap_p_two_sided": 0.0,
+          "comparator": "fitness+dispersion",
+          "estimate": -0.00902995661266881,
+          "high": -0.004333587552383888,
+          "holm_p_secondary": 0.0,
+          "low": -0.013403288626150037,
+          "model": "fitness+dispersion+entropy"
+        },
+        "EW3": {
+          "bootstrap_p_two_sided": 0.0,
+          "comparator": "fitness",
+          "estimate": 0.0030288526199548915,
+          "high": 0.00416457493446823,
+          "holm_p_secondary": 0.0,
+          "low": 0.0019119926494321538,
+          "model": "fitness+dispersion"
+        },
+        "EW4": {
+          "bootstrap_p_two_sided": 0.0,
+          "comparator": "fitness",
+          "estimate": -0.30975631940399895,
+          "high": -0.2893982490781405,
+          "holm_p_secondary": 0.0,
+          "low": -0.3286962994388827,
+          "model": "entropy_only"
+        }
+      },
+      "counts": {
+        "runs_without_at_risk_points": 0,
+        "test_clusters": 150,
+        "test_points": 29011,
+        "test_prevalence": 0.04157043879907621,
+        "test_runs": 450,
+        "train_points": 21617,
+        "train_runs": 300
+      },
+      "decision": "no_meaningful_gain",
+      "decision_rule": "no_meaningful_gain if high < sesoi; supported if low > 0 and estimate >= sesoi; else inconclusive",
+      "delta_brier_fitness_minus_fitness_entropy": 0.00048455953241113847,
+      "per_landscape_EW5": {
+        "griewank": {
+          "auroc_fitness": 0.8589954112629854,
+          "auroc_fitness_entropy": 0.9169873141666679,
+          "delta_auroc": 0.0579919029036825,
+          "prevalence": 0.03151960365593235,
+          "test_points": 11707
+        },
+        "levy": {
+          "auroc_fitness": 0.867799628290636,
+          "auroc_fitness_entropy": 0.8220061411611511,
+          "delta_auroc": -0.04579348712948483,
+          "prevalence": 0.044266256590509666,
+          "test_points": 9104
+        },
+        "styblinski_tang": {
+          "auroc_fitness": 0.9171340630492599,
+          "auroc_fitness_entropy": 0.9014450321678686,
+          "delta_auroc": -0.015689030881391286,
+          "prevalence": 0.05292682926829268,
+          "test_points": 8200
+        }
+      },
+      "score_columns": {
+        "diversity_rule": "score_diversity_rule",
+        "entropy_only": "score_entropy_only",
+        "fitness": "score_fitness",
+        "fitness+dispersion": "score_fitness_dispersion",
+        "fitness+dispersion+entropy": "score_fitness_dispersion_entropy",
+        "fitness+entropy": "score_fitness_entropy",
+        "progress_rate_rule": "score_progress_rate_rule"
+      },
+      "sesoi": 0.02,
+      "stage": "confirmatory",
+      "status": "confirmatory"
+    },
+    "reproduction_byte_identical": true,
+    "runs": {
+      "confirmatory_analysis": "RUN-960036E6972E",
+      "held_out_simulation": "RUN-2A2C97E306F9",
+      "julia_audit": "RUN-B980AAB62DC3",
+      "parity": "RUN-DDE3027D4C66",
+      "python_benchmark": "RUN-EC04160D51A8",
+      "reproduction": "RUN-D3927C818ABD",
+      "rust_audit": "RUN-CA504C9736ED"
+    },
+    "timing": {
+      "benchmark_scope": "600 snapshots, in-memory computation only",
+      "python_entropy_batch_median_seconds": 0.040363200001593214,
+      "python_over_rust_ratio": 21.886563280334677,
+      "rust_entropy_batch_median_seconds": 0.0018442
+    }
+  },
+  "development": {
+    "analysis": "RUN-5253D734A2BD",
+    "exploratory_result": {
+      "auroc": {
+        "diversity_rule": {
+          "estimate": 0.30919274643551786,
+          "high": 0.32149167170864923,
+          "low": 0.2966390792249862
+        },
+        "entropy_only": {
+          "estimate": 0.5611322435663522,
+          "high": 0.5769660797656221,
+          "low": 0.5450057340090647
+        },
+        "fitness": {
+          "estimate": 0.6986081062246151,
+          "high": 0.7158647386763465,
+          "low": 0.6799494036223652
+        },
+        "fitness+dispersion": {
+          "estimate": 0.7374075041655956,
+          "high": 0.7543142406251716,
+          "low": 0.7193473983172983
+        },
+        "fitness+dispersion+entropy": {
+          "estimate": 0.839683855979302,
+          "high": 0.8532138690082743,
+          "low": 0.8242865744510048
+        },
+        "fitness+entropy": {
+          "estimate": 0.8378928074398694,
+          "high": 0.8513318527736697,
+          "low": 0.8227972316867285
+        },
+        "progress_rate_rule": {
+          "estimate": 0.8229418735690067,
+          "high": 0.8364190435854716,
+          "low": 0.8094571501222031
+        }
+      },
+      "brier": {
+        "entropy_only": 0.030629712867848373,
+        "fitness": 0.030081775755221026,
+        "fitness+dispersion": 0.029915903516727144,
+        "fitness+dispersion+entropy": 0.029198772976669937,
+        "fitness+entropy": 0.029212533244215456
+      },
+      "contrasts": {
+        "EW1": {
+          "bootstrap_p_two_sided": 0.0,
+          "comparator": "fitness",
+          "estimate": 0.13928470121525427,
+          "high": 0.14898485224586738,
+          "low": 0.1305215095533484,
+          "model": "fitness+entropy"
+        },
+        "EW2": {
+          "bootstrap_p_two_sided": 0.0,
+          "comparator": "fitness+dispersion",
+          "estimate": 0.10227635181370631,
+          "high": 0.10961933940364353,
+          "holm_p_secondary": 0.0,
+          "low": 0.09524604352605912,
+          "model": "fitness+dispersion+entropy"
+        },
+        "EW3": {
+          "bootstrap_p_two_sided": 0.0,
+          "comparator": "fitness",
+          "estimate": 0.03879939794098053,
+          "high": 0.04146188134838449,
+          "holm_p_secondary": 0.0,
+          "low": 0.03633101141071016,
+          "model": "fitness+dispersion"
+        },
+        "EW4": {
+          "bootstrap_p_two_sided": 0.0,
+          "comparator": "fitness",
+          "estimate": -0.13747586265826295,
+          "high": -0.11798429054943586,
+          "holm_p_secondary": 0.0,
+          "low": -0.15751658609910435,
+          "model": "entropy_only"
+        }
+      },
+      "counts": {
+        "runs": 300,
+        "runs_without_at_risk_points": 0,
+        "test_points": 21617,
+        "test_prevalence": 0.031549243650830366
+      },
+      "decision": null,
+      "delta_brier_fitness_minus_fitness_entropy": 0.0008692425110055704,
+      "folds": [
+        "ackley",
+        "rastrigin"
+      ],
+      "scheme": "leave-one-landscape-out",
+      "sesoi": 0.02,
+      "stage": "exploratory",
+      "status": "exploratory"
+    },
+    "simulation": "RUN-C2162ADD10DB"
+  },
+  "elapsed_seconds": 356.334266,
+  "finished_at": "2026-10-04T07:27:16.625073+00:00",
+  "mode": "confirmatory",
+  "protocol_sha256": "ba0e3e0ad771233ba5a7f5575170ed7e1a05a074fd4597c3c98e9d2882f43e2d",
+  "root": "research_prototypes/entropy_early_warning/output/sealed-v1 (local evidence store)",
+  "stages_seconds": {
+    "bundle_and_corruption_checks": 32.52826929999719,
+    "confirmatory_analysis": 77.72576449999906,
+    "confirmatory_reproduction": 82.83107210000162,
+    "cross_language_check": 0.46467820000543725,
+    "development_analysis": 55.479008800000884,
+    "development_simulation": 28.727643900005205,
+    "held_out_simulation": 41.62171289999969,
+    "julia_statistics_audit": 16.867316399999254,
+    "python_entropy_benchmark": 1.9593492999993032,
+    "rust_entropy_audit": 7.777656600002956
+  },
+  "started_at": "2026-10-04T07:21:20.290827+00:00",
+  "study_id": "entropy-early-warning-v1"
+}

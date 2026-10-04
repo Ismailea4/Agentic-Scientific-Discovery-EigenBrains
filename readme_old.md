@@ -1,5 +1,10 @@
 # EigenBrains
 
+> **Historical document.** This file is retained only to preserve repository
+> history and may not describe the current system. Use the current
+> [README](README.md) and [documentation index](docs/README.md) for setup,
+> architecture, evidence, and verification instructions.
+
 EigenBrains is an evidence-driven control center for composing and selecting
 AI-agent architectures. It combines a **React + TypeScript + Vite** desktop
 interface with a **Python FastAPI** backend, provider-neutral model adapters,
@@ -25,7 +30,8 @@ runtime telemetry remain explicitly separated.
 
 ## Quickstart
 
-Backend (Python 3.10+; developed on 3.14):
+Backend (historical instructions; the current scientific package requires
+Python 3.12+):
 
 ```bash
 cd backend
@@ -39,7 +45,7 @@ Frontend (Node 18+; developed on 22):
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev        # http://localhost:5173
 ```
 
@@ -217,8 +223,8 @@ diagnostics, downside VaR/CVaR, marginal-agent economics, bounded weak priors,
 sequential racing, robust routing, stress tests, and architecture cards. It
 ships no fabricated model results and makes no challenge-performance claim.
 See [`docs/BENCHMARK_METHODOLOGY.md`](docs/BENCHMARK_METHODOLOGY.md) for the
-frozen evidence protocol and [`backend/EXPERIMENTS.md`](backend/EXPERIMENTS.md)
-for implementation-level experimental tooling.
+frozen evidence protocol and [`docs/CODEBASE.md`](docs/CODEBASE.md) for the
+implementation map.
 
 ## Environment
 
