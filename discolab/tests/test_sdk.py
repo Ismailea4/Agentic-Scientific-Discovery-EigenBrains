@@ -86,6 +86,16 @@ def test_protocol_schema_and_rpc_dispatch_expose_the_same_methods():
             "h0": "null",
             "family": "prediction",
         },
+        "research.begin": {"spec": {}},
+        "research.emit": {"run_id": "RUN-X", "name": "data", "kind": "json", "value": {}, "schema": "data.v1"},
+        "research.metric": {"run_id": "RUN-X", "name": "loss", "value": 1.0},
+        "research.consume": {"run_id": "RUN-X", "evaluations": 1},
+        "research.finalize": {"run_id": "RUN-X"},
+        "research.inspect": {"run_id": "RUN-X"},
+        "research.validate": {"run_id": "RUN-X"},
+        "research.compare": {"left": "RUN-X", "right": "RUN-Y"},
+        "research.accept": {"run_id": "RUN-X", "rationale": "test"},
+        "research.reproduce": {"run_id": "RUN-X"},
     }
     schema_path = Path(__file__).parents[2] / "sdk" / "protocol" / "v1" / "schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
@@ -93,5 +103,17 @@ def test_protocol_schema_and_rpc_dispatch_expose_the_same_methods():
     assert set(cases) == declared
 
     client = RecordingClient()
+    expected_client_method = {
+        "research.begin": "begin_research_run",
+        "research.emit": "emit_research_artifact",
+        "research.metric": "record_research_metric",
+        "research.consume": "consume_research_budget",
+        "research.finalize": "finalize_research_run",
+        "research.inspect": "inspect_research_run",
+        "research.validate": "validate_research_run",
+        "research.compare": "compare_research_runs",
+        "research.accept": "accept_research_run",
+        "research.reproduce": "reproduce_research_run",
+    }
     for method, params in cases.items():
-        assert dispatch(client, method, params)["name"] == method
+        assert dispatch(client, method, params)["name"] == expected_client_method.get(method, method)

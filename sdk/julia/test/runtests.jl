@@ -45,6 +45,35 @@ end
                 @test state(client)["selected"] == proposed["id"]
                 @test !isempty(events(client))
 
+                metric = MetricSpec(
+                    name="runtime", unit="seconds", role="primary", minimum=0.0,
+                )
+                spec = ResearchExperimentSpec(
+                    capability="simulation",
+                    hypothesis="The Julia client records validated evidence.",
+                    protocol="julia-inline-protocol",
+                    parameters=Dict{String,Any}("iterations" => 1),
+                    seed=7,
+                    outputs=[ArtifactSchema(
+                        name="observations", kind="table",
+                        fields=[FieldSchema(
+                            name="value", dtype="number", unit="score",
+                            role="observation", minimum=0.0,
+                        )],
+                    )],
+                    primary_metric=metric,
+                    budget=ResourceBudget(max_evaluations=1),
+                )
+                opened = begin_research_run!(client, spec)
+                run_id = opened["run_id"]
+                consume_research_budget!(client, run_id, 1)
+                emit_research_artifact!(
+                    client, run_id, "observations", "table",
+                    [Dict("value" => 1.0)], "observations.v1",
+                )
+                record_research_metric!(client, run_id, "runtime", 0.01)
+                @test finalize_research_run!(client, run_id)["valid"] == true
+
                 caught = try
                     request!(client, "not-a-method")
                     nothing

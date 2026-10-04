@@ -7,6 +7,11 @@ using FastGaussQuadrature
 export Client, ProtocolError, open_client, request!, initialize!, state, events,
        propose!, score!, select!, run!, abort!, result, analyze!, decide!,
        register_hypothesis!,
+       ResourceBudget, FieldSchema, ArtifactSchema, MetricSpec, ResearchExperimentSpec,
+       begin_research_run!, emit_research_artifact!, record_research_metric!,
+       consume_research_budget!, finalize_research_run!, inspect_research_run,
+       validate_research_run, compare_research_runs, accept_research_run!,
+       reproduce_research_run!,
        entropy_bits, outcome_probabilities, likelihood_table, posterior,
        expected_information_gain, wilson_interval
 
@@ -24,6 +29,82 @@ end
 
 Base.showerror(io::IO, error::ProtocolError) =
     print(io, "EigenBrains remote error ", error.code, ": ", error.message)
+
+Base.@kwdef struct ResourceBudget
+    max_evaluations::Union{Nothing,Int} = nothing
+    max_seconds::Union{Nothing,Float64} = nothing
+end
+
+Base.@kwdef struct FieldSchema
+    name::String
+    dtype::String
+    unit::Union{Nothing,String} = nothing
+    role::Union{Nothing,String} = nothing
+    nullable::Bool = false
+    minimum::Union{Nothing,Float64} = nothing
+    maximum::Union{Nothing,Float64} = nothing
+    censoring::Union{Nothing,String} = nothing
+end
+
+Base.@kwdef struct ArtifactSchema
+    name::String
+    version::Int = 1
+    kind::String
+    fields::Vector{FieldSchema} = FieldSchema[]
+    dtype::Union{Nothing,String} = nothing
+    ndim::Union{Nothing,Int} = nothing
+    unit::Union{Nothing,String} = nothing
+    role::Union{Nothing,String} = nothing
+    allow_extra_fields::Bool = false
+end
+
+Base.@kwdef struct MetricSpec
+    name::String
+    unit::String
+    role::String = "secondary"
+    minimum::Union{Nothing,Float64} = nothing
+    maximum::Union{Nothing,Float64} = nothing
+    censoring::Union{Nothing,String} = nothing
+end
+
+Base.@kwdef struct ResearchExperimentSpec
+    capability::String
+    hypothesis::String
+    protocol::String
+    parameters::Dict{String,Any} = Dict{String,Any}()
+    seed::Int
+    outputs::Vector{ArtifactSchema}
+    primary_metric::MetricSpec
+    budget::ResourceBudget = ResourceBudget()
+    runner::Union{Nothing,String} = nothing
+    inputs::Dict{String,String} = Dict{String,String}()
+    reproduction_of::Union{Nothing,String} = nothing
+end
+
+asdict(value::ResourceBudget) = Dict(
+    "max_evaluations" => value.max_evaluations, "max_seconds" => value.max_seconds,
+)
+asdict(value::FieldSchema) = Dict(
+    "name" => value.name, "dtype" => value.dtype, "unit" => value.unit,
+    "role" => value.role, "nullable" => value.nullable, "minimum" => value.minimum,
+    "maximum" => value.maximum, "censoring" => value.censoring,
+)
+asdict(value::ArtifactSchema) = Dict(
+    "name" => value.name, "version" => value.version, "kind" => value.kind,
+    "fields" => asdict.(value.fields), "dtype" => value.dtype, "ndim" => value.ndim,
+    "unit" => value.unit, "role" => value.role, "allow_extra_fields" => value.allow_extra_fields,
+)
+asdict(value::MetricSpec) = Dict(
+    "name" => value.name, "unit" => value.unit, "role" => value.role,
+    "minimum" => value.minimum, "maximum" => value.maximum, "censoring" => value.censoring,
+)
+asdict(value::ResearchExperimentSpec) = Dict(
+    "capability" => value.capability, "hypothesis" => value.hypothesis,
+    "protocol" => value.protocol, "parameters" => value.parameters, "seed" => value.seed,
+    "outputs" => asdict.(value.outputs), "primary_metric" => asdict(value.primary_metric),
+    "budget" => asdict(value.budget), "runner" => value.runner, "inputs" => value.inputs,
+    "reproduction_of" => value.reproduction_of,
+)
 
 """Start the persistent Python bridge used by the Julia SDK."""
 function open_client(root::AbstractString; python::AbstractString="python", actor::AbstractString="julia-sdk")
@@ -87,6 +168,37 @@ decide!(
 ))
 register_hypothesis!(client::Client, hypothesis) =
     request!(client, "register_hypothesis", hypothesis)
+
+begin_research_run!(client::Client, spec::ResearchExperimentSpec) =
+    request!(client, "research.begin", Dict("spec" => asdict(spec)))
+emit_research_artifact!(
+    client::Client, run_id::AbstractString, name::AbstractString, kind::AbstractString,
+    value, schema::AbstractString; stage::AbstractString="raw", parents=String[],
+) = request!(client, "research.emit", Dict(
+    "run_id" => run_id, "name" => name, "kind" => kind, "value" => value,
+    "schema" => schema, "stage" => stage, "parents" => collect(parents),
+))
+record_research_metric!(
+    client::Client, run_id::AbstractString, name::AbstractString, value::Real;
+    spec::Union{Nothing,MetricSpec}=nothing,
+) = request!(client, "research.metric", Dict(
+    "run_id" => run_id, "name" => name, "value" => Float64(value),
+    "spec" => isnothing(spec) ? nothing : asdict(spec),
+))
+consume_research_budget!(client::Client, run_id::AbstractString, evaluations::Integer=0) =
+    request!(client, "research.consume", Dict("run_id" => run_id, "evaluations" => evaluations))
+finalize_research_run!(client::Client, run_id::AbstractString) =
+    request!(client, "research.finalize", Dict("run_id" => run_id))
+inspect_research_run(client::Client, run_id::AbstractString) =
+    request!(client, "research.inspect", Dict("run_id" => run_id))
+validate_research_run(client::Client, run_id::AbstractString) =
+    request!(client, "research.validate", Dict("run_id" => run_id))
+compare_research_runs(client::Client, left::AbstractString, right::AbstractString) =
+    request!(client, "research.compare", Dict("left" => left, "right" => right))
+accept_research_run!(client::Client, run_id::AbstractString, rationale::AbstractString) =
+    request!(client, "research.accept", Dict("run_id" => run_id, "rationale" => rationale))
+reproduce_research_run!(client::Client, run_id::AbstractString) =
+    request!(client, "research.reproduce", Dict("run_id" => run_id))
 
 Base.close(client::Client) = close(client.io)
 

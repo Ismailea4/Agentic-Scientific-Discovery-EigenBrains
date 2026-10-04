@@ -12,7 +12,10 @@
         "method": {
           "enum": [
             "initialize", "state", "events", "propose", "score", "select",
-            "run", "abort", "result", "analyze", "decide", "register_hypothesis"
+            "run", "abort", "result", "analyze", "decide", "register_hypothesis",
+            "research.begin", "research.emit", "research.metric", "research.consume",
+            "research.finalize", "research.inspect", "research.validate",
+            "research.compare", "research.accept", "research.reproduce"
           ]
         },
         "params": {"type": "object", "default": {}}

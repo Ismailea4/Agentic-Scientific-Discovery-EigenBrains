@@ -41,6 +41,26 @@ def dispatch(client: DiscoveryLab, method: str, params: dict[str, Any]) -> Any:
         return client.decide(params["decision"], params["rationale"], params.get("next_experiment"))
     if method == "register_hypothesis":
         return client.register_hypothesis(**params)
+    if method == "research.begin":
+        return client.begin_research_run(params["spec"])
+    if method == "research.emit":
+        return client.emit_research_artifact(**params)
+    if method == "research.metric":
+        return client.record_research_metric(**params)
+    if method == "research.consume":
+        return client.consume_research_budget(**params)
+    if method == "research.finalize":
+        return client.finalize_research_run(params["run_id"])
+    if method == "research.inspect":
+        return client.inspect_research_run(params["run_id"])
+    if method == "research.validate":
+        return client.validate_research_run(params["run_id"])
+    if method == "research.compare":
+        return client.compare_research_runs(params["left"], params["right"])
+    if method == "research.accept":
+        return client.accept_research_run(params["run_id"], params["rationale"])
+    if method == "research.reproduce":
+        return client.reproduce_research_run(params["run_id"])
     raise ValueError(f"unknown SDK method {method!r}")
 
 

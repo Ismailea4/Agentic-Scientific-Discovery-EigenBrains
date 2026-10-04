@@ -12,6 +12,117 @@ use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 pub const PROTOCOL_VERSION: &str = "1.0";
 
+#[derive(Debug, Clone, Default)]
+pub struct ResourceBudget {
+    pub max_evaluations: Option<u64>,
+    pub max_seconds: Option<f64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldSchema {
+    pub name: String,
+    pub dtype: String,
+    pub unit: Option<String>,
+    pub role: Option<String>,
+    pub nullable: bool,
+    pub minimum: Option<f64>,
+    pub maximum: Option<f64>,
+    pub censoring: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ArtifactSchema {
+    pub name: String,
+    pub version: u32,
+    pub kind: String,
+    pub fields: Vec<FieldSchema>,
+    pub dtype: Option<String>,
+    pub ndim: Option<u32>,
+    pub unit: Option<String>,
+    pub role: Option<String>,
+    pub allow_extra_fields: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct MetricSpec {
+    pub name: String,
+    pub unit: String,
+    pub role: String,
+    pub minimum: Option<f64>,
+    pub maximum: Option<f64>,
+    pub censoring: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResearchExperimentSpec {
+    pub capability: String,
+    pub hypothesis: String,
+    pub protocol: String,
+    pub parameters: Value,
+    pub seed: i64,
+    pub outputs: Vec<ArtifactSchema>,
+    pub primary_metric: MetricSpec,
+    pub budget: ResourceBudget,
+    pub runner: Option<String>,
+    pub inputs: Value,
+    pub reproduction_of: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ArtifactEmission {
+    pub name: String,
+    pub kind: String,
+    pub value: Value,
+    pub schema: String,
+    pub stage: String,
+    pub parents: Vec<String>,
+}
+
+impl FieldSchema {
+    fn as_json(&self) -> Value {
+        json!({
+            "name": self.name, "dtype": self.dtype, "unit": self.unit, "role": self.role,
+            "nullable": self.nullable, "minimum": self.minimum, "maximum": self.maximum,
+            "censoring": self.censoring,
+        })
+    }
+}
+
+impl ArtifactSchema {
+    fn as_json(&self) -> Value {
+        json!({
+            "name": self.name, "version": self.version, "kind": self.kind,
+            "fields": self.fields.iter().map(FieldSchema::as_json).collect::<Vec<_>>(),
+            "dtype": self.dtype, "ndim": self.ndim, "unit": self.unit, "role": self.role,
+            "allow_extra_fields": self.allow_extra_fields,
+        })
+    }
+}
+
+impl MetricSpec {
+    fn as_json(&self) -> Value {
+        json!({
+            "name": self.name, "unit": self.unit, "role": self.role,
+            "minimum": self.minimum, "maximum": self.maximum, "censoring": self.censoring,
+        })
+    }
+}
+
+impl ResearchExperimentSpec {
+    fn as_json(&self) -> Value {
+        json!({
+            "capability": self.capability, "hypothesis": self.hypothesis,
+            "protocol": self.protocol, "parameters": self.parameters, "seed": self.seed,
+            "outputs": self.outputs.iter().map(ArtifactSchema::as_json).collect::<Vec<_>>(),
+            "primary_metric": self.primary_metric.as_json(),
+            "budget": {"max_evaluations": self.budget.max_evaluations,
+                       "max_seconds": self.budget.max_seconds},
+            "runner": self.runner, "inputs": self.inputs,
+            "reproduction_of": self.reproduction_of,
+        })
+    }
+}
+
 #[derive(Debug)]
 pub enum SdkError {
     Io(std::io::Error),
@@ -218,6 +329,83 @@ impl Bridge {
     pub fn register_hypothesis(&mut self, hypothesis: Value) -> Result<Value, SdkError> {
         self.call("register_hypothesis", hypothesis)
     }
+
+    pub fn begin_research_run(&mut self, spec: &ResearchExperimentSpec) -> Result<Value, SdkError> {
+        self.call("research.begin", json!({"spec": spec.as_json()}))
+    }
+
+    pub fn emit_research_artifact(
+        &mut self,
+        run_id: &str,
+        artifact: &ArtifactEmission,
+    ) -> Result<Value, SdkError> {
+        self.call(
+            "research.emit",
+            json!({
+                "run_id": run_id, "name": artifact.name, "kind": artifact.kind,
+                "value": artifact.value, "schema": artifact.schema,
+                "stage": artifact.stage, "parents": artifact.parents,
+            }),
+        )
+    }
+
+    pub fn record_research_metric(
+        &mut self,
+        run_id: &str,
+        name: &str,
+        value: f64,
+        spec: Option<&MetricSpec>,
+    ) -> Result<Value, SdkError> {
+        self.call(
+            "research.metric",
+            json!({
+                "run_id": run_id, "name": name, "value": value,
+                "spec": spec.map(MetricSpec::as_json),
+            }),
+        )
+    }
+
+    pub fn consume_research_budget(
+        &mut self,
+        run_id: &str,
+        evaluations: u64,
+    ) -> Result<Value, SdkError> {
+        self.call(
+            "research.consume",
+            json!({"run_id": run_id, "evaluations": evaluations}),
+        )
+    }
+
+    pub fn finalize_research_run(&mut self, run_id: &str) -> Result<Value, SdkError> {
+        self.call("research.finalize", json!({"run_id": run_id}))
+    }
+
+    pub fn inspect_research_run(&mut self, run_id: &str) -> Result<Value, SdkError> {
+        self.call("research.inspect", json!({"run_id": run_id}))
+    }
+
+    pub fn validate_research_run(&mut self, run_id: &str) -> Result<Value, SdkError> {
+        self.call("research.validate", json!({"run_id": run_id}))
+    }
+
+    pub fn compare_research_runs(&mut self, left: &str, right: &str) -> Result<Value, SdkError> {
+        self.call("research.compare", json!({"left": left, "right": right}))
+    }
+
+    pub fn accept_research_run(
+        &mut self,
+        run_id: &str,
+        rationale: &str,
+    ) -> Result<Value, SdkError> {
+        self.call(
+            "research.accept",
+            json!({"run_id": run_id, "rationale": rationale}),
+        )
+    }
+
+    pub fn reproduce_research_run(&mut self, run_id: &str) -> Result<Value, SdkError> {
+        self.call("research.reproduce", json!({"run_id": run_id}))
+    }
 }
 
 impl Drop for Bridge {
@@ -309,7 +497,10 @@ pub mod kernels {
 
 #[cfg(test)]
 mod tests {
-    use super::{kernels::*, Bridge, SdkError};
+    use super::{
+        kernels::*, ArtifactEmission, ArtifactSchema, Bridge, FieldSchema, MetricSpec,
+        ResearchExperimentSpec, ResourceBudget, SdkError,
+    };
     use serde_json::{json, Value};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -373,6 +564,71 @@ mod tests {
             .unwrap();
         assert_eq!(bridge.state().unwrap()["selected"], experiment_id);
         assert!(!bridge.events().unwrap().as_array().unwrap().is_empty());
+
+        let metric = MetricSpec {
+            name: "runtime".into(),
+            unit: "seconds".into(),
+            role: "primary".into(),
+            minimum: Some(0.0),
+            maximum: None,
+            censoring: None,
+        };
+        let spec = ResearchExperimentSpec {
+            capability: "simulation".into(),
+            hypothesis: "The native client records validated evidence.".into(),
+            protocol: "rust-inline-protocol".into(),
+            parameters: json!({"iterations": 1}),
+            seed: 7,
+            outputs: vec![ArtifactSchema {
+                name: "observations".into(),
+                version: 1,
+                kind: "table".into(),
+                fields: vec![FieldSchema {
+                    name: "value".into(),
+                    dtype: "number".into(),
+                    unit: Some("score".into()),
+                    role: Some("observation".into()),
+                    nullable: false,
+                    minimum: Some(0.0),
+                    maximum: None,
+                    censoring: None,
+                }],
+                dtype: None,
+                ndim: None,
+                unit: None,
+                role: None,
+                allow_extra_fields: false,
+            }],
+            primary_metric: metric,
+            budget: ResourceBudget {
+                max_evaluations: Some(1),
+                max_seconds: None,
+            },
+            runner: None,
+            inputs: json!({}),
+            reproduction_of: None,
+        };
+        let opened = bridge.begin_research_run(&spec).unwrap();
+        let research_id = opened["run_id"].as_str().unwrap();
+        bridge.consume_research_budget(research_id, 1).unwrap();
+        bridge
+            .emit_research_artifact(
+                research_id,
+                &ArtifactEmission {
+                    name: "observations".into(),
+                    kind: "table".into(),
+                    value: json!([{"value": 1.0}]),
+                    schema: "observations.v1".into(),
+                    stage: "raw".into(),
+                    parents: vec![],
+                },
+            )
+            .unwrap();
+        bridge
+            .record_research_metric(research_id, "runtime", 0.01, None)
+            .unwrap();
+        let validation = bridge.finalize_research_run(research_id).unwrap();
+        assert_eq!(validation["valid"], true);
 
         match bridge.call("not-a-method", json!({})) {
             Err(SdkError::Remote { code, message }) => {
