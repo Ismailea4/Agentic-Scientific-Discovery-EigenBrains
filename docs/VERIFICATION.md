@@ -10,6 +10,15 @@ integrity, deterministic reproduction, and implementation tests:
 Run it from the repository root. It never reads credential values and never
 contacts a model provider.
 
+If the local PowerShell execution policy blocks unsigned repository scripts,
+run the same verifier for this process only:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1
+```
+
+This does not change the user- or machine-level execution policy.
+
 ## What the default command verifies
 
 1. The published selective-model policy values are derived again from
@@ -25,14 +34,21 @@ contacts a model provider.
    - mean compute ratio `1.542` with every replicate above one;
    - `28/35` selective and `29/35` full-size reference agreement;
    - five rescues and zero damages.
-3. A fresh Python SDK evidence run is executed with a root seed and named RNG
+3. The sealed entropy early-warning evidence is verified from its committed
+   bundle:
+   - the frozen protocol SHA-256 and archive/content identities match;
+   - all nine bundled runs pass manifest and artifact-integrity validation;
+   - the primary held-out AUROC contrast is recomputed from hashed predictions;
+   - the sample counts, confidence interval, SESOI decision rule, and registered
+     `no_meaningful_gain` verdict remain consistent.
+4. A fresh Python SDK evidence run is executed with a root seed and named RNG
    stream, validated, reproduced under a second run ID, and compared for
    byte-identical artifacts.
-4. The two runs are exported to a deterministic content-addressed bundle and
+5. The two runs are exported to a deterministic content-addressed bundle and
    verified. A deliberately corrupted temporary copy must fail verification.
-5. Backend and discovery-lab Python tests run with workspace-local temporary
+6. Backend and discovery-lab Python tests run with workspace-local temporary
    directories and single-threaded numerical libraries.
-6. Frontend type checking/build, Rust formatting/Clippy/tests, and Julia tests
+7. Frontend type checking/build, Rust formatting/Clippy/tests, and Julia tests
    run when the full profile is selected.
 
 The command exits nonzero when any requested step fails and prints a compact

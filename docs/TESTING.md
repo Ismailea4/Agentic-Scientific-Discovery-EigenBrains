@@ -1,9 +1,9 @@
 # Test strategy and commands
 
-The default verification suites are offline and deterministic. The backend
-currently collects 120 tests; the discovery-lab count evolves with the SDK and
-should be read from pytest collection output rather than copied into claims.
-Live provider calls are never part of the default unit suite.
+The default verification suites are offline and deterministic. Test counts
+evolve with the implementation and should be read from the current pytest
+collection output rather than copied into durable claims. Live provider calls
+are never part of the default unit suite.
 
 ## Repository-level verification
 

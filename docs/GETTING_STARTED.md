@@ -17,9 +17,17 @@ verifier from the root:
 .\scripts\verify.ps1
 ```
 
-It derives the published acceleration values from their machine-readable
-artifacts, performs a fresh deterministic SDK run/reproduction/tamper check,
-and tests the Python, frontend, Rust, and Julia components. Use `-CoreOnly`
+If the local execution policy blocks the script, invoke it without changing
+the persistent user or machine policy:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1
+```
+
+It derives the published routing and acceleration values, verifies the sealed
+entropy study from its committed bundle, performs a fresh deterministic SDK
+run/reproduction/tamper check, and tests the Python, frontend, Rust, and Julia
+components. Use `-CoreOnly`
 when only Python is installed or `-ClaimsOnly` for a fast evidence-integrity
 check. See [Verification and reproduction](VERIFICATION.md) for profiles and
 interpretation limits.

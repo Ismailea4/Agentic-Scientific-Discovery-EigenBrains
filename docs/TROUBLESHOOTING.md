@@ -4,6 +4,17 @@ Diagnose from the narrowest boundary outward: environment, unit tests, local
 process, protocol, then external provider. Preserve the exact command and
 structured error; do not expose credentials while asking for help.
 
+## PowerShell blocks `scripts/verify.ps1`
+
+Run the repository verifier with a process-scoped policy bypass:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1
+```
+
+This invocation does not weaken the persistent user or machine execution
+policy. Do not change the global policy merely to run the verifier.
+
 ## Python cannot import `app` or `discolab`
 
 Backend commands must run from `backend/` with `PYTHONPATH=.` or with the package

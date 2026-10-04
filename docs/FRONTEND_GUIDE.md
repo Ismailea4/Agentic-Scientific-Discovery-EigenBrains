@@ -80,8 +80,10 @@ settle a panel. Do not add decorative bouncing or endless loops.
 ## Data provenance in the UI
 
 `src/dev/fixtures.ts` is development-only. It declares in its file header that
-its figures are hand-written layout examples. Production evidence views must
-not import it.
+its figures are hand-written layout examples. The current showcase workspaces
+may import these fixtures only while they visibly retain their `SAMPLE` marker.
+A claim-bearing evidence view must instead consume the typed API/bridge and
+must not import this file.
 
 Every rendered quantity should expose or inherit an evidence label:
 

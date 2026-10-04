@@ -119,4 +119,18 @@ SDKs; `discolab.bridge` is the separate read-only HTTP/SSE projection for the UI
 
 ## Results
 
-_Filled from the ledger and artifacts after each recorded run; see below._
+Recorded results are evidence artifacts, not hand-authored demonstrations:
+
+- [`results/run1_prereg_v1/README.md`](results/run1_prereg_v1/README.md) and
+  [`results/run2_prereg_v2/README.md`](results/run2_prereg_v2/README.md) document the first two
+  closed-loop discovery rounds;
+- [`results/escalation/README.md`](results/escalation/README.md) reports the
+  selective sample-escalation study;
+- the repository-level
+  [sealed entropy early-warning report](../docs/SEALED_ENTROPY_EARLY_WARNING_RESULT.md)
+  documents the independent held-out falsification study and its verified
+  evidence bundle.
+
+Treat each report's protocol, evidence label, split, and limitations as part of
+the result. Do not generalize across domains or replace missing measurements
+with agent-generated values.

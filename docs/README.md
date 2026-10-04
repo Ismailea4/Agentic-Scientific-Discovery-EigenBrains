@@ -49,6 +49,8 @@ authoritative:
 | Discovery hypotheses and decision rules | `discolab/prereg.yaml` |
 | Acceleration study protocol | `discolab/escalation_protocol.yaml` |
 | Recorded acceleration evidence | `discolab/results/escalation/summary.json` and its [report](../discolab/results/escalation/README.md) |
+| Sealed entropy study protocol | `research_prototypes/entropy_early_warning/protocol.yaml` |
+| Recorded sealed entropy evidence | `research_prototypes/entropy_early_warning/evidence/study-summary.json`, its verified bundle, and the [result report](SEALED_ENTROPY_EARLY_WARNING_RESULT.md) |
 | Agent permissions | `discolab/omnigent/lab_pi/**/config.yaml` and MCP allow-lists |
 | Model benchmark cases and limits | `benchmark/cases/` and `benchmark/configs/` |
 | Recorded model observations | `benchmark/artifacts/` |

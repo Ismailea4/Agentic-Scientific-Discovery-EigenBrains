@@ -315,5 +315,9 @@ The provider-backed confirmation made seven verifier calls for `S3` and seven fo
 - The benchmark does not establish performance on a new domain.
 - The measured GPT-OSS/Qwen gate should not be generalized into a universal architecture rule.
 
-The complete frozen results are in `benchmark/reports/PRECHALLENGE_BASELINE_V0.md` and the machine-readable summary is in `benchmark/artifacts/baseline_v0/baseline_v0_summary.json`.
+The complete frozen results are in Architecture Baseline v0's historical
+ledger file, `benchmark/reports/PRECHALLENGE_BASELINE_V0.md`, and the
+machine-readable summary is in
+`benchmark/artifacts/baseline_v0/baseline_v0_summary.json`. The legacy filename
+is retained to preserve evidence identity; it is not current product wording.
 

@@ -16,6 +16,7 @@ mathematical statement about entropy or evolutionary algorithms in general.
 | Implementation | [`research_prototypes/entropy_early_warning/`](../research_prototypes/entropy_early_warning/) |
 | Sealed evidence bundle | [`evidence/entropy-early-warning-v1.zip`](../research_prototypes/entropy_early_warning/evidence/entropy-early-warning-v1.zip), content identity `e3fcdbc34f93e31d34873816eed6a6fa45c177ec536fa9b2c6851b7e39ed8908` |
 | Machine-readable summary | [`evidence/study-summary.json`](../research_prototypes/entropy_early_warning/evidence/study-summary.json) |
+| Evidence label | `BENCHMARK` — sealed held-out confirmation under a frozen protocol |
 | Confirmatory run | `RUN-960036E6972E`, status `accepted_as_evidence` |
 | Registered verdict | **`no_meaningful_gain`** |
 
@@ -41,7 +42,7 @@ fitness-history features alone.
 | Time (UTC, 2026-10-04) | Event |
 |---|---|
 | 05:10:08 | Protocol committed and pushed to `sdk` in `eac845c`. No study data existed. |
-| 07:17–07:18 | Development-only rehearsal (`development-gate`): development simulation and exploratory analysis. **No held-out landscape was simulated or analysed.** Its development artifacts are byte-identical to the sealed run's (same seeds, deterministic code). |
+| 07:17–07:20 | Development-only rehearsal (`development-gate`): development simulation and exploratory analysis. **No held-out landscape was simulated or analysed.** Its development artifacts are byte-identical to the sealed run's (same seeds, deterministic code). |
 | 07:21:20 | Sealed run started in a fresh evidence store (`run_study.py --confirm`); the driver refuses to run unless the protocol hash equals `ba0e3e0a…`. |
 | 07:27:16 | Sealed run finished: 356 s wall time end to end. |
 
