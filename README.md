@@ -168,6 +168,16 @@ protocol and retain structured remote errors.
 Read [Research SDK](docs/RESEARCH_SDK.md) and
 [SDK contracts](docs/SDK_CONTRACTS.md).
 
+To experience the three-language contract directly:
+
+```powershell
+python -m sdk.interop.demo
+```
+
+The command produces one shared, validated evidence graph across Python, Rust,
+and Julia and exports a verified bundle. It is an interoperability proof, not a
+performance or scientific benchmark.
+
 ## Reproducibility and scientific rigor
 
 Before making a scientific claim:

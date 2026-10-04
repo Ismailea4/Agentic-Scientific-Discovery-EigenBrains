@@ -32,6 +32,37 @@ protocol never accepts Python code or shell commands; a run may name an
 importable Python runner only when the bridge is started with
 `--allow-runner-module`.
 
+## One-command interoperability proof
+
+With Python/discolab, Cargo, and Julia installed, run from the repository root:
+
+```powershell
+python -m sdk.interop.demo
+```
+
+This is an executable proof, not a diagram. Python writes seeded NumPy and
+JSONL evidence; Rust independently reads the NumPy artifact and recomputes
+entropy with its native kernel; Julia independently reads the prediction table
+and recomputes AUROC plus clustered uncertainty. All three write protocol-v1
+runs into the same append-only evidence store. Python then checks `1e-12`
+parity, reproduces the source artifacts byte-for-byte, accepts the combined
+result, and verifies one content-addressed bundle.
+
+The terminal prints one run ID per language, both numerical differences, the
+bundle identity, and the evidence root. Inspect `interop-summary.json` and the
+`research-runs/` directory underneath that root. Use explicit tool locations
+when they are not yet on `PATH`:
+
+```powershell
+python -m sdk.interop.demo `
+  --cargo <path-to-cargo.exe> `
+  --julia <path-to-julia.exe>
+```
+
+The procedure is frozen in
+[`interop/PROTOCOL.md`](interop/PROTOCOL.md). It makes no provider calls and no
+scientific or speed claim.
+
 ## Python
 
 ```python

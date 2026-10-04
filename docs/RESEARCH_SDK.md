@@ -1,5 +1,30 @@
 # Research evidence SDK
 
+## Immediate interoperability demonstration
+
+The fastest way to verify the language boundary is to run this from the
+repository root after installing all three toolchains:
+
+```powershell
+python -m sdk.interop.demo
+```
+
+The demonstration creates five linked evidence runs in one store:
+
+1. Python produces seeded NumPy and JSONL artifacts plus reference metrics.
+2. Rust consumes the hashed NumPy input and records native entropy.
+3. Julia consumes the hashed prediction input and records AUROC with clustered
+   uncertainty.
+4. Python checks both independent computations against the references and
+   accepts the result only within `1e-12`.
+5. Python reproduces the source run and requires byte-identical artifacts.
+
+All runs use protocol v1, retain structured provenance, validate independently,
+and are exported into one verified content-addressed bundle. The command prints
+every run ID, both parity differences, and the bundle hash. The procedure is
+specified in [`sdk/interop/PROTOCOL.md`](../sdk/interop/PROTOCOL.md). It is an
+engineering proof and deliberately makes no research or performance claim.
+
 The SDK turns a computational experiment into a self-describing evidence run.
 It is designed for the point where an idea becomes data: the hypothesis,
 protocol, parameters, seed, resource bounds, outputs, metrics, environment, and

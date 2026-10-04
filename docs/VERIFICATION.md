@@ -69,6 +69,18 @@ Dependency installation is explicit because it can download packages and
 modify local environments. Rust and Julia dependencies remain owned by their
 toolchains.
 
+Run the complete Python -> Rust -> Julia evidence exchange in addition to the
+normal suites:
+
+```powershell
+.\scripts\verify.ps1 -Interop -KeepArtifacts
+```
+
+The interoperability step creates independent Python, Rust, and Julia runs in
+one evidence store, checks numerical parity, reproduces the Python source run,
+accepts the combined verification, and verifies one bundle. `-KeepArtifacts`
+retains it beneath `.verification/<timestamp>/interop/` for inspection.
+
 ## Full acceleration reproduction
 
 The committed acceleration bundle excludes approximately 125 MB of raw traces;

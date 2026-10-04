@@ -176,6 +176,20 @@ Set `PYTHON` if the desired interpreter is not named `python`:
 $env:PYTHON = (Resolve-Path .\discolab\.venv\Scripts\python.exe)
 ```
 
+## Verify Python, Rust, and Julia together
+
+After the three component checks pass, run the shared interoperability proof:
+
+```powershell
+python -m sdk.interop.demo
+```
+
+This command uses the source checkout directly, starts the Python sidecar for
+both native clients, and leaves a complete evidence store under
+`.interop-demo/`. A pass requires exact numerical parity within `1e-12`, a
+byte-identical Python reproduction, five valid runs, an accepted verification
+run, and a verified bundle. It does not contact model providers.
+
 ## Omnigent discovery loop
 
 Only proceed after the deterministic scientific core passes. The current

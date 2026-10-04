@@ -24,7 +24,13 @@ contracts, and mathematical primitives. **A Python sidecar is required**:
 julia --project=sdk/julia -e 'using Pkg; Pkg.instantiate()'
 julia --project=sdk/julia sdk/julia/test/runtests.jl
 julia --project=sdk/julia sdk/julia/examples/evidence.jl study
+julia --project=sdk/julia sdk/julia/examples/interop_audit.jl <root> <predictions.jsonl> <reference.json> <protocol>
 ```
+
+For the complete Python -> Rust -> Julia demonstration, run
+`python -m sdk.interop.demo` from the repository root. The driver supplies the
+hashed Python prediction artifact to `interop_audit.jl`, which records AUROC
+and clustered uncertainty in the same evidence store.
 
 Tests check numerical parity with Python fixtures, the exact DeLong reduction,
 the clustered SE against a cluster bootstrap, method and contract parity, and a
