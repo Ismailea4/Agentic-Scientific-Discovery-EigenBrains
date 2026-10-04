@@ -18,6 +18,7 @@ calculations.
 | Understand the whole repository | [System architecture](SYSTEM_ARCHITECTURE.md) |
 | Run the application locally | [Getting started](GETTING_STARTED.md) |
 | Reproduce a result | [Reproducibility handbook](REPRODUCIBILITY.md) |
+| See the sealed held-out result (negative, landscape-dependent) | [Sealed entropy early-warning result](SEALED_ENTROPY_EARLY_WARNING_RESULT.md) |
 | Design or review an experiment | [Scientific rigor standard](SCIENTIFIC_RIGOR.md) |
 | Operate the API, UI, lab, or agents | [Operations runbook](OPERATIONS_RUNBOOK.md) |
 | Extend or verify the interface | [Frontend guide](FRONTEND_GUIDE.md) |

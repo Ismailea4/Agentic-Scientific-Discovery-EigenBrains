@@ -154,8 +154,13 @@ Use a committed source for the main presentation and keep live mode optional:
 3. Show two or more competing candidates and the PI selection.
 4. Open E1/E4/E7, draw the plot, and show the numerical verdict.
 5. Animate the posterior transition and reveal the changed next decision.
-6. Open the acceleration card and finish on the 1.54x/28-of-35 evidence.
-7. Open provenance briefly to prove that every number has a run and artifact.
+6. Open the acceleration card and show the 1.54x/28-of-35 evidence.
+7. Show the sealed held-out test: development +0.139 AUROC, held-out −0.006
+   [−0.011, −0.0003], verdict `no_meaningful_gain`, Griewank +0.058 vs Levy
+   −0.046 ([report](SEALED_ENTROPY_EARLY_WARNING_RESULT.md)). Say plainly that
+   `accepted_as_evidence` means the negative result is valid evidence, not that
+   the hypothesis was accepted, and keep it separate from the 1.54x claim.
+8. Open provenance briefly to prove that every number has a run and artifact.
 
 A recorded evidence path is the reliable default. A live Omnigent session can
 run beside it, but provider availability must not be allowed to decide whether

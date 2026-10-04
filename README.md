@@ -54,7 +54,7 @@ For component boundaries and data flow, read
 
 ## Current empirical foundation
 
-The repository contains four distinct evidence tracks:
+The repository contains five distinct evidence tracks:
 
 1. **Paired model pilot.** A 120-call study measured quality, provider failures,
    latency, cost, and error dependence across five configured models. It found
@@ -73,12 +73,22 @@ The repository contains four distinct evidence tracks:
    compute, a mean 1.54x acceleration (95% CI [1.28, 1.90]), while agreeing with
    the 48-seed reference on 28/35 decisions versus 29/35 for the full-size
    design. It produced five rescues and zero damages.
+5. **A sealed held-out test overturned a +0.139 development signal.** A
+   protocol frozen before any data was run once on 450 untouched runs (150
+   independent clusters). Adding population entropy raised development AUROC
+   by +0.139 [+0.131, +0.149], but on held-out landscapes the gain vanished:
+   ΔAUROC −0.006 [−0.011, −0.0003], registered verdict `no_meaningful_gain`,
+   with a landscape-dependent sign (Griewank +0.058, Levy −0.046). See the
+   [sealed result report](docs/SEALED_ENTROPY_EARLY_WARNING_RESULT.md).
 
 The recorded discovery evidence supports a development-stage result: population
 entropy and genotypic dispersion added predictive information about impending
 search stagnation on the studied development landscapes. It did not establish
 that the resulting predictive mutation controller beats a rate-matched fixed
-baseline. Held-out confirmation remains separate.
+baseline. The sealed held-out test (track 5) then showed that entropy's added
+predictive value does not generalize across untouched landscapes: it is
+landscape-dependent, so it is not claimed as a universal early-warning signal.
+The 1.54x acceleration and this negative result are separate studies.
 
 Start with:
 
@@ -87,6 +97,7 @@ Start with:
 - [Discovery run 1](discolab/results/run1_prereg_v1/README.md)
 - [Discovery run 2](discolab/results/run2_prereg_v2/README.md)
 - [Measured research-acceleration study](discolab/results/escalation/README.md)
+- [Sealed entropy early-warning result (held-out, negative)](docs/SEALED_ENTROPY_EARLY_WARNING_RESULT.md)
 - [Machine-readable acceleration results](discolab/results/escalation/summary.json)
 - [Benchmark methodology](docs/BENCHMARK_METHODOLOGY.md)
 - [Scientific rigor standard](docs/SCIENTIFIC_RIGOR.md)

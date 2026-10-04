@@ -39,6 +39,12 @@ Held-out outcomes cannot choose a model, threshold, prompt, verifier rule,
 metric, exclusion, or stopping condition. If held-out data influence a choice,
 the analysis becomes exploratory and a new confirmation set is required.
 
+Worked example: in the [sealed entropy early-warning study](SEALED_ENTROPY_EARLY_WARNING_RESULT.md)
+the development stage showed +0.139 AUROC from adding entropy; the single
+sealed confirmation on untouched landscapes gave −0.006 [−0.011, −0.0003] and
+the registered verdict `no_meaningful_gain`. Without the phase separation the
+development number would have become a false general claim.
+
 ## 3. Define the experimental unit correctly
 
 Inference assumes some unit is independently sampled. Common errors include:
