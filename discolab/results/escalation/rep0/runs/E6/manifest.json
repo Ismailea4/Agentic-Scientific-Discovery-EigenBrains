@@ -1,0 +1,94 @@
+{
+  "id": "E6",
+  "spec": {
+    "kind": "control",
+    "title": "H6 development test, 24 seeds",
+    "rationale": "acceleration study design for H6",
+    "hypotheses": [
+      "H6"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 24,
+    "feature_sets": null,
+    "controllers": [
+      "B0_fixed",
+      "B3_predictive",
+      "B0_fixed_x0.8"
+    ]
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    100600,
+    100601,
+    100602,
+    100603,
+    100604,
+    100605,
+    100606,
+    100607,
+    100608,
+    100609,
+    100610,
+    100611,
+    100612,
+    100613,
+    100614,
+    100615,
+    100616,
+    100617,
+    100618,
+    100619,
+    100620,
+    100621,
+    100622,
+    100623
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "07e080f1bd6afb9e565c1c845ad5c542f6f0992b2ad1bb3db28c1cbecb89107c",
+  "code": {
+    "discolab_sha256": "3149992a88ed19f24d36a243e609c6f2b855fb1894ea35a4982a8d7fcda3ba74",
+    "git_commit": "39941eb4262ac198318282e1000adf7ffa4c13f5",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "risk_model_seeds": [
+    100650,
+    100651,
+    100652,
+    100653,
+    100654,
+    100655,
+    100656,
+    100657,
+    100658,
+    100659,
+    100660,
+    100661,
+    100662,
+    100663,
+    100664,
+    100665,
+    100666,
+    100667,
+    100668,
+    100669,
+    100670,
+    100671,
+    100672,
+    100673
+  ],
+  "runtime_sec": 23.707777700001316,
+  "calibration_added": {}
+}

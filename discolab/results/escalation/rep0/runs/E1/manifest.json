@@ -1,0 +1,67 @@
+{
+  "id": "E1",
+  "spec": {
+    "kind": "prediction",
+    "title": "H1 development test, 24 seeds",
+    "rationale": "acceleration study design for H1",
+    "hypotheses": [
+      "H1"
+    ],
+    "landscapes": [
+      "rastrigin",
+      "ackley"
+    ],
+    "n_seeds": 24,
+    "feature_sets": [
+      "fitness",
+      "fitness+entropy"
+    ],
+    "controllers": null
+  },
+  "derived": {
+    "stage": "development",
+    "dev_landscapes": [
+      "rastrigin",
+      "ackley"
+    ]
+  },
+  "seeds": [
+    100100,
+    100101,
+    100102,
+    100103,
+    100104,
+    100105,
+    100106,
+    100107,
+    100108,
+    100109,
+    100110,
+    100111,
+    100112,
+    100113,
+    100114,
+    100115,
+    100116,
+    100117,
+    100118,
+    100119,
+    100120,
+    100121,
+    100122,
+    100123
+  ],
+  "seed_block": "development",
+  "prereg_sha256": "07e080f1bd6afb9e565c1c845ad5c542f6f0992b2ad1bb3db28c1cbecb89107c",
+  "code": {
+    "discolab_sha256": "3149992a88ed19f24d36a243e609c6f2b855fb1894ea35a4982a8d7fcda3ba74",
+    "git_commit": "39941eb4262ac198318282e1000adf7ffa4c13f5",
+    "git_dirty": true,
+    "python": "3.12.6",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1"
+  },
+  "workers": 8,
+  "runtime_sec": 14.544714499999827,
+  "calibration_added": {}
+}
