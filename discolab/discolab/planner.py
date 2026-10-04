@@ -1,23 +1,27 @@
-"""Deterministic experiment selection and belief update.
+"""Deterministic experiment selection and belief update (prereg v2).
 
 Utility (EigenBrains constrained-utility form, re-targeted at experiments):
     U(E) = EIG(E) - eta * wall_seconds(E) - lambda * heldout_landscapes(E)
 Hard constraints are checked first; an infeasible experiment is never ranked.
 
-EIG: each tested hypothesis h has prior q. The experiment yields a verdict
-o in {supported, inconclusive, refuted} with pre-registered likelihoods
-    P(sup|H1)=pi   P(ref|H1)=r1          P(inc|H1)=1-pi-r1
-    P(sup|H0)=s0   P(ref|H0)=pi          P(inc|H0)=1-s0-pi
-where pi = Phi(delta*sqrt(n) - z_{1-alpha/2}) is the design's power for the
-assumed standardised effect delta (the latest measured effect in the same
-hypothesis family once one exists). EIG = H(q) - E_o[H(q|o)] in bits.
-The same table turns an observed verdict into a posterior, so the planner's
-expectations and the belief update are consistent.
+Outcome model. For a hypothesis tested on n independent units, the estimate of
+the standardised effect is ~ N(delta, 1/n). With z = z_{1-alpha/2} and the
+smallest effect of interest s (standardised):
+    supported     <=> est - z/sqrt(n) > 0        P = Phi(delta*sqrt(n) - z)
+    refuted       <=> est + z/sqrt(n) < s        P = Phi((s - delta)*sqrt(n) - z)
+    inconclusive  otherwise
+H1 uses delta = assumed effect (> 0); H0 uses delta = 0. EIG is the mutual
+information (bits) between the hypothesis and this three-way verdict, and the
+same table converts an observed verdict into the posterior, so planning
+expectations and belief updates agree. Under this model an inconclusive
+verdict from a well-powered design is evidence *against* H1 (prereg v1's
+approximation P(refuted|H0) = power made it look like evidence for H1).
 """
 
 from __future__ import annotations
 
 import math
+import statistics
 
 from scipy.stats import norm
 
@@ -25,6 +29,8 @@ from .experiments import ExperimentSpec, estimate_cost, run_plan, validate_spec
 from .prereg import initial_prior
 
 VERDICTS = ("supported", "inconclusive", "refuted")
+SUPPORTED_AT, REFUTED_AT = 0.9, 0.1  # prereg decision_rules.hypothesis_status
+EPS = 1e-6
 
 
 def entropy_bits(q: float) -> float:
@@ -33,19 +39,22 @@ def entropy_bits(q: float) -> float:
     return -(q * math.log2(q) + (1 - q) * math.log2(1 - q))
 
 
-def power(n_units: int, std_effect: float, alpha: float) -> float:
+def outcome_probs(delta: float, n: int, sesoi: float, alpha: float) -> dict[str, float]:
     z = norm.ppf(1 - alpha / 2)
-    return float(min(0.97, max(0.03, norm.cdf(abs(std_effect) * math.sqrt(max(n_units, 1)) - z))))
+    rn = math.sqrt(max(n, 1))
+    sup = float(norm.cdf(delta * rn - z))
+    ref = float(norm.cdf((sesoi - delta) * rn - z))
+    inc = 1.0 - sup - ref
+    probs = {"supported": max(sup, EPS), "refuted": max(ref, EPS), "inconclusive": max(inc, EPS)}
+    total = sum(probs.values())
+    return {k: v / total for k, v in probs.items()}
 
 
-def likelihood_table(pi: float, lik: dict) -> dict[str, tuple[float, float]]:
+def likelihood_table(delta1: float, n: int, sesoi: float, alpha: float) -> dict[str, tuple[float, float]]:
     """verdict -> (P(o|H1), P(o|H0))."""
-    r1, s0 = lik["refuted_given_H1"], lik["supported_given_H0"]
-    return {
-        "supported": (pi, s0),
-        "refuted": (r1, pi),
-        "inconclusive": (max(1e-6, 1 - pi - r1), max(1e-6, 1 - s0 - pi)),
-    }
+    h1 = outcome_probs(delta1, n, sesoi, alpha)
+    h0 = outcome_probs(0.0, n, sesoi, alpha)
+    return {o: (h1[o], h0[o]) for o in VERDICTS}
 
 
 def posterior(q: float, verdict: str, table) -> float:
@@ -62,6 +71,11 @@ def eig_bits(q: float, table) -> float:
     return entropy_bits(q) - total
 
 
+def power(n_units: int, std_effect: float, alpha: float) -> float:
+    """P(supported | true standardised effect) — kept for reporting."""
+    return float(norm.cdf(abs(std_effect) * math.sqrt(max(n_units, 1)) - norm.ppf(1 - alpha / 2)))
+
+
 def current_prior(hid: str, hyps: dict[str, dict]) -> float:
     h = hyps[hid]
     if h.get("history"):
@@ -71,21 +85,70 @@ def current_prior(hid: str, hyps: dict[str, dict]) -> float:
     return float(h["posterior"])
 
 
+def _measured(h: dict) -> list[dict]:
+    return [e for e in h.get("history", []) if e.get("experiment") and e.get("effect") is not None]
+
+
 def assumed_effect(hid: str, hyps: dict[str, dict], policy: dict) -> tuple[float, str]:
-    h = hyps[hid]
-    if "latest_effect" in h:
-        return float(h["latest_effect"]), f"measured on {hid}"
-    fam = [x for x in hyps.values() if x["family"] == h["family"] and "latest_effect" in x]
+    """Effect size H1 is assumed to have when planning a test of `hid`.
+
+    Own latest measurement if any, else the mean of the latest measurements of
+    every hypothesis in the same family (order-independent), else the
+    pre-registered default. Floored so H1 always claims a positive effect.
+    """
+    floor = policy["min_assumed_standardised_effect"]
+    own = _measured(hyps[hid])
+    if own:
+        return max(float(own[-1]["effect"]), floor), f"latest measurement of {hid}"
+    fam = [(_measured(x)[-1]["effect"], x["id"]) for x in hyps.values()
+           if x["family"] == hyps[hid]["family"] and _measured(x)]
     if fam:
-        last = max(fam, key=lambda x: x["history"][-1]["seq"])
-        return float(last["latest_effect"]), f"latest measured in family '{h['family']}' ({last['id']})"
+        mean = statistics.fmean(float(e) for e, _ in fam)
+        return max(mean, floor), "mean of family measurements (" + ", ".join(i for _, i in fam) + ")"
     return float(policy["assumed_standardised_effect"]), "pre-registered default"
 
 
-def n_units(spec: ExperimentSpec, prereg: dict, derived: dict) -> int:
+def sesoi_standardised(hid: str, hyps: dict[str, dict], prereg: dict) -> tuple[float, str]:
+    """Smallest effect of interest on the standardised scale.
+
+    Converted from the raw SESOI with the per-unit SD implied by measurements
+    in the same family (raw estimate / standardised estimate), else the
+    pre-registered default.
+    """
+    pol = prereg["planner_policy"]
+    fam = hyps[hid]["family"]
+    raw_sesoi = prereg["decision_rules"]["smallest_effect_of_interest"][
+        "prediction_delta_auroc" if fam == "prediction" else "control_rmst_generations"]
+    sds = []
+    for x in hyps.values():
+        if x["family"] != fam:
+            continue
+        for e in _measured(x):
+            raw = (e.get("interval") or {}).get("estimate")
+            std = e.get("effect")
+            if raw is not None and std and abs(std) > 1e-9 and abs(raw) > 1e-12:
+                sds.append(abs(raw / std))
+    if sds:
+        return raw_sesoi / statistics.median(sds), f"raw SESOI / measured per-unit SD (n={len(sds)})"
+    return float(pol["default_sesoi_standardised"]), "pre-registered default"
+
+
+def n_units(spec: ExperimentSpec, prereg: dict) -> int:
     if spec.kind == "prediction":
         return spec.n_seeds * len(prereg["prediction_study"]["data_policies"]) * len(spec.landscapes)
     return spec.n_seeds * len(spec.landscapes)
+
+
+def calibrated_sec_per_generation(state: dict) -> tuple[float, str]:
+    """Wall seconds per weighted generation, learned from completed runs."""
+    obs = []
+    for c in state["candidates"].values():
+        plan = (c.get("derived") or {}).get("plan")
+        if c.get("runtime_sec") and plan and plan.get("weighted_generations"):
+            obs.append(c["runtime_sec"] / plan["weighted_generations"])
+    if obs:
+        return statistics.median(obs), f"calibrated from {len(obs)} completed run(s)"
+    return None, "benchmark"
 
 
 def score_candidates(state: dict, prereg: dict) -> list[dict]:
@@ -93,6 +156,7 @@ def score_candidates(state: dict, prereg: dict) -> list[dict]:
     alpha = prereg["decision_rules"]["alpha"]
     hyps = state["hypotheses"]
     remaining = state["compute_budget_sec"] - state["compute_used_sec"]
+    wall_per_gen, cost_source = calibrated_sec_per_generation(state)
     rows = []
     for eid, cand in state["candidates"].items():
         if cand["status"] not in ("proposed", "scored"):
@@ -100,7 +164,12 @@ def score_candidates(state: dict, prereg: dict) -> list[dict]:
         spec = ExperimentSpec(**cand["spec"])
         derived = validate_spec(spec, prereg, hyps)
         plan = run_plan(spec, prereg, derived, state["calibration"])
-        cost = estimate_cost(plan, state["sec_per_generation"])
+        if wall_per_gen is None:
+            cost = estimate_cost(plan, state["sec_per_generation"])
+        else:
+            wall = round(plan["weighted_generations"] * wall_per_gen, 2)
+            cost = {"cpu_seconds": None, "wall_seconds": wall}
+        cost["model"] = cost_source
         violations = []
         if cost["wall_seconds"] > remaining:
             violations.append(f"estimated {cost['wall_seconds']}s exceeds remaining budget {remaining:.0f}s")
@@ -110,13 +179,17 @@ def score_candidates(state: dict, prereg: dict) -> list[dict]:
                 if not dev_done:
                     violations.append(f"{hid} has no completed development-stage test (confirmatory data protected)")
         per_h, eig = {}, 0.0
+        n = n_units(spec, prereg)
         for hid in spec.hypotheses:
             q = current_prior(hid, hyps)
             delta, src = assumed_effect(hid, hyps, pol)
-            pi = power(n_units(spec, prereg, derived), delta, alpha)
-            e = eig_bits(q, likelihood_table(pi, pol["likelihoods"]))
+            s, s_src = sesoi_standardised(hid, hyps, prereg)
+            table = likelihood_table(delta, n, s, alpha)
+            e = eig_bits(q, table)
             per_h[hid] = {"prior": round(q, 4), "assumed_effect": round(delta, 4), "effect_source": src,
-                          "power": round(pi, 4), "eig_bits": round(e, 4)}
+                          "sesoi_std": round(s, 4), "sesoi_source": s_src, "n_units": n,
+                          "p_supported_if_H1": round(table["supported"][0], 4),
+                          "p_refuted_if_H0": round(table["refuted"][1], 4), "eig_bits": round(e, 4)}
             eig += e
         heldout = len(spec.landscapes) if derived["stage"] == "confirmatory" else 0
         cost_pen = pol["eta_bits_per_second"] * cost["wall_seconds"]
@@ -133,8 +206,7 @@ def score_candidates(state: dict, prereg: dict) -> list[dict]:
 
 def belief_updates(state: dict, prereg: dict, exp_id: str) -> list[dict]:
     """Posterior updates implied by an analysed experiment's verdicts (+ coupled priors)."""
-    pol = prereg["planner_policy"]
-    rules = prereg["decision_rules"]
+    alpha = prereg["decision_rules"]["alpha"]
     hyps = state["hypotheses"]
     cand = state["candidates"][exp_id]
     score = cand.get("score") or {}
@@ -142,30 +214,27 @@ def belief_updates(state: dict, prereg: dict, exp_id: str) -> list[dict]:
     updates = []
     new_post = {}
     for hid, v in verdicts.items():
+        planned = score.get("hypotheses", {}).get(hid)
+        if planned is None:
+            raise ValueError(f"{exp_id} has no scored plan for {hid}")
         q = current_prior(hid, hyps)
-        pi = score.get("hypotheses", {}).get(hid, {}).get("power")
-        if pi is None:
-            raise ValueError(f"{exp_id} has no scored power for {hid}")
-        p = posterior(q, v["verdict"], likelihood_table(pi, pol["likelihoods"]))
+        table = likelihood_table(planned["assumed_effect"], planned["n_units"], planned["sesoi_std"], alpha)
+        p = posterior(q, v["verdict"], table)
         new_post[hid] = p
-        updates.append({"id": hid, "experiment": exp_id, "verdict": v["verdict"], "prior": q, "power": pi,
-                        "posterior": p, "status": _status(p, rules), "effect": v["standardised_effect"],
+        updates.append({"id": hid, "experiment": exp_id, "verdict": v["verdict"], "prior": q,
+                        "likelihoods": {"H1": table[v["verdict"]][0], "H0": table[v["verdict"]][1]},
+                        "posterior": p, "status": _status(p), "effect": v["standardised_effect"],
                         "stage": v["stage"], "measure": v["measure"], "interval": v["effect"]})
     # propagate pre-registered prior couplings to hypotheses not yet tested directly
     for hid, h in hyps.items():
         rule = h.get("prior_rule")
-        if rule and not any("experiment" in e and e.get("experiment") for e in h["history"]) \
-                and rule["depends_on"] in new_post:
+        if rule and not any(e.get("experiment") for e in h["history"]) and rule["depends_on"] in new_post:
             q = new_post[rule["depends_on"]]
             p = q * rule["if_true"] + (1 - q) * rule["if_false"]
-            updates.append({"id": hid, "experiment": None, "verdict": None, "posterior": p,
-                            "status": _status(p, rules),
+            updates.append({"id": hid, "experiment": None, "verdict": None, "posterior": p, "status": _status(p),
                             "reason": f"pre-registered prior coupling to {rule['depends_on']}"})
     return updates
 
 
-SUPPORTED_AT, REFUTED_AT = 0.9, 0.1  # prereg decision_rules.hypothesis_status
-
-
-def _status(p: float, rules: dict) -> str:
+def _status(p: float) -> str:
     return "supported" if p >= SUPPORTED_AT else "refuted" if p <= REFUTED_AT else "open"
