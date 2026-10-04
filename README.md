@@ -1,33 +1,236 @@
-# Agentic-Scientific-Discovery-EigenBrains
-An Omnigent-orchestrated AI lab built for the Hack-Nation 7th Challenge 03 to automate experimental workflows, coordinate specialist agents, and accelerate scientific discovery.
+# EigenBrains
 
-## Current evidence
+EigenBrains is an evidence-driven platform for agentic scientific discovery. It
+combines a model/architecture control plane, a reproducible computational
+laboratory, a multi-language research SDK, and an interface that explains the
+system's decisions without confusing demonstration data with empirical results.
 
-- Two recorded Omnigent discovery loops with immutable ledgers and artifacts.
-- A frozen acceleration protocol comparing information-gain selection with a
-  conventional fixed sweep and a larger reference design.
-- 70 Python tests covering the scientific core, ledger, planner, statistics,
-  agent-facing contracts, and public SDK.
+The project is built around one rule:
 
-See [`discolab/README.md`](discolab/README.md) for the research system and
-recorded runs.
+> Agents may propose, select, and interpret. Validated software owns
+> measurements, constraints, state transitions, and statistical calculations.
 
-## SDK
+## What the project does
 
-[`sdk/README.md`](sdk/README.md) documents the multi-language SDK:
+- Evaluates models and agent architectures using paired outcomes, provider
+  availability, cost, latency, covariance, tail risk, and uncertainty.
+- Routes work under hard capability, privacy, authorization, and budget
+  constraints.
+- Runs an autonomous hypothesis-to-evidence loop through a PI supervisor and
+  least-privilege literature, experiment-design, and critic agents.
+- Executes real seeded numerical experiments on dynamic optimization problems.
+- Records append-only decisions, preregistration hashes, raw artifacts,
+  provenance, statistical verdicts, and changed next decisions.
+- Exposes a research evidence SDK for Python, Rust, and Julia.
+- Separates interface fixtures, offline replay, benchmark measurements,
+  provider-backed architecture runs, and live telemetry.
 
-- Python: authoritative research lifecycle and AI orchestration API.
-- Rust: typed bridge client plus native high-throughput telemetry kernels.
-- Julia: bridge client plus decision-theory and statistical mathematics.
+## Architecture
 
-All three languages share the versioned JSONL contract in
-[`sdk/protocol/v1/schema.json`](sdk/protocol/v1/schema.json); the scientific
-logic and ledger transition guards remain authoritative in Python.
-Detailed method and failure semantics are in
-[`docs/SDK_CONTRACTS.md`](docs/SDK_CONTRACTS.md).
-The end-to-end evidence workflow, schemas, provenance, reproduction, and
-three-language examples are in
-[`docs/RESEARCH_SDK.md`](docs/RESEARCH_SDK.md).
+```text
+React control surface
+        |
+        v
+FastAPI policy + routing + benchmark control plane
+        |
+        +--> provider-neutral agents and normalized observations
+        +--> capability/fallback enforcement
+        +--> portfolio, Pareto, Bayesian, and tail-risk analysis
 
-The agents' research doctrine is documented in
-[`docs/SCIENTIFIC_RESEARCH_PLAYBOOK.md`](docs/SCIENTIFIC_RESEARCH_PLAYBOOK.md).
+Omnigent PI supervisor
+        |
+        +--> literature agent
+        +--> experiment designer
+        +--> critic
+        |
+        v
+deterministic discolab tools --> append-only ledger --> scientific artifacts
+
+Python evidence SDK <--> JSONL protocol <--> Rust and Julia clients
+```
+
+For component boundaries and data flow, read
+[System architecture](docs/SYSTEM_ARCHITECTURE.md).
+
+## Current empirical foundation
+
+The repository contains four distinct evidence tracks:
+
+1. **Paired model pilot.** A 120-call study measured quality, provider failures,
+   latency, cost, and error dependence across five configured models. It found
+   that model rank alone was insufficient because failure overlap differed
+   substantially between pairs.
+2. **Architecture baseline.** A frozen 72-case design measured three models and
+   evaluated selective escalation. Offline replay and provider-backed verifier
+   calls are reported separately. Held-out comparisons remain uncertainty-bound
+   and are not presented as universal rankings.
+3. **Autonomous discovery loops.** Two recorded Omnigent runs proposed competing
+   experiments, selected by information gain and cost, executed seeded genetic
+   algorithm studies, updated beliefs, and changed the next scientific decision.
+4. **Measured research acceleration.** A frozen five-replicate study compared a
+   conventional 24-seed design with selective 6 -> 12 -> 24-seed escalation
+   across seven hypotheses. Selective escalation used 35.15% less simulation
+   compute, a mean 1.54x acceleration (95% CI [1.28, 1.90]), while agreeing with
+   the 48-seed reference on 28/35 decisions versus 29/35 for the full-size
+   design. It produced five rescues and zero damages.
+
+The recorded discovery evidence supports a development-stage result: population
+entropy and genotypic dispersion added predictive information about impending
+search stagnation on the studied development landscapes. It did not establish
+that the resulting predictive mutation controller beats a rate-matched fixed
+baseline. Held-out confirmation remains separate.
+
+Start with:
+
+- [Model pilot report](benchmark/reports/PILOT_REPORT.md)
+- [Machine-readable architecture baseline](benchmark/artifacts/baseline_v0/baseline_v0_summary.json)
+- [Discovery run 1](discolab/results/run1_prereg_v1/README.md)
+- [Discovery run 2](discolab/results/run2_prereg_v2/README.md)
+- [Measured research-acceleration study](discolab/results/escalation/README.md)
+- [Machine-readable acceleration results](discolab/results/escalation/summary.json)
+- [Benchmark methodology](docs/BENCHMARK_METHODOLOGY.md)
+- [Scientific rigor standard](docs/SCIENTIFIC_RIGOR.md)
+
+## Repository map
+
+| Path | Purpose |
+|---|---|
+| `frontend/` | React/Vite cinematic control surface and visual QA assets |
+| `backend/` | FastAPI API, provider abstractions, policy, optimization, instrumentation, and benchmark engine |
+| `benchmark/` | Frozen cases/configuration, raw observations, derived artifacts, and reports |
+| `discolab/` | Scientific core, preregistration, Omnigent bundle, ledgers, and recorded discovery runs |
+| `sdk/` | Rust and Julia packages, cross-language protocol, and executable examples |
+| `docs/` | Architecture, research, operations, API, testing, and reproducibility documentation |
+
+## Quick start
+
+### Backend
+
+```powershell
+python -m venv .venv-backend
+& .\.venv-backend\Scripts\Activate.ps1
+python -m pip install -r .\backend\requirements-dev.txt
+Set-Location .\backend
+$env:PYTHONPATH = "."
+python -m pytest tests -q
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+### Frontend
+
+In another terminal:
+
+```powershell
+Set-Location .\frontend
+npm ci
+npm run typecheck
+npm run build
+npm run dev
+```
+
+Open `http://localhost:5173`. API documentation is available at
+`http://localhost:8000/docs`.
+
+### Scientific core and SDK
+
+```powershell
+Set-Location .\discolab
+python -m venv .venv
+& .\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+$env:OPENBLAS_NUM_THREADS = "1"
+$env:OMP_NUM_THREADS = "1"
+$env:MKL_NUM_THREADS = "1"
+python -m pytest -q
+Set-Location ..
+python .\sdk\examples\research_evidence.py
+```
+
+The complete platform setup, including Rust, Julia, and Omnigent, is in
+[Getting started](docs/GETTING_STARTED.md).
+
+## Research SDK
+
+The SDK records experiments as self-describing evidence runs:
+
+- explicit hypothesis, protocol, parameters, seed, budget, outputs, and primary
+  metric;
+- controlled random streams;
+- semantic table/array/JSON schemas;
+- units, bounds, roles, censoring, stages, and lineage;
+- Git/runtime/dependency/system provenance;
+- content validation, comparison, evidence decisions, and reproduction.
+
+Python is the authoritative runtime. Rust is the performance-oriented path and
+Julia is the mathematical-research path; both use a versioned local JSONL
+protocol and retain structured remote errors.
+
+Read [Research SDK](docs/RESEARCH_SDK.md) and
+[SDK contracts](docs/SDK_CONTRACTS.md).
+
+## Reproducibility and scientific rigor
+
+Before making a scientific claim:
+
+1. freeze the hypothesis, primary outcome, split, seed policy, exclusions,
+   statistical analysis, stopping rule, and budgets;
+2. separate development/tuning from held-out confirmation;
+3. preserve pairing, clustering, censoring, and failures;
+4. keep raw, derived, and analysis artifacts distinct;
+5. report effect sizes and uncertainty, including unresolved comparisons;
+6. validate content hashes and schemas;
+7. reproduce at least one run independently;
+8. state exactly which claims are supported, unresolved, or contradicted.
+
+The full standards are in:
+
+- [Reproducibility handbook](docs/REPRODUCIBILITY.md)
+- [Scientific rigor standard](docs/SCIENTIFIC_RIGOR.md)
+- [Scientific research playbook](docs/SCIENTIFIC_RESEARCH_PLAYBOOK.md)
+
+## Verify the repository offline
+
+From PowerShell at the repository root:
+
+```powershell
+.\scripts\verify.ps1
+```
+
+The command makes no provider calls. It validates the published model-routing
+and research-acceleration claims against their machine-readable artifacts,
+performs a deterministic SDK run and byte-level reproduction, and runs the
+offline Python, frontend, Rust, and Julia verification suites. Use
+`.\scripts\verify.ps1 -CoreOnly` when the optional language toolchains are not
+installed. See [Verification and reproduction](docs/VERIFICATION.md).
+
+## Security
+
+The repository must never contain credential values. Provider keys are read
+from environment variables only. Logs omit prompts, documents, request headers,
+cookies, and credentials. The local API currently has no authentication and
+must not be exposed directly to an untrusted network.
+
+See [Security policy](SECURITY.md).
+
+## Documentation
+
+The documentation portal is [docs/README.md](docs/README.md). It includes
+architecture, setup, operations, contracts, testing, contribution rules,
+troubleshooting, terminology, reproducibility, and research standards.
+
+## Scope and limitations
+
+- Generic benchmark evidence is a weak prior, not proof about an unseen task.
+- Small held-out sets produce wide uncertainty, especially for tail risk and
+  rescue probability.
+- Offline replay is not equivalent to an executed multi-agent architecture.
+- Provider behavior and pricing can drift over time.
+- Rust and Julia SDK clients currently rely on the Python sidecar.
+- Content hashes provide integrity checks under a local threat model; they are
+  not digital signatures.
+- The discovery results recorded so far are development-stage unless explicitly
+  labeled otherwise.
+
+Negative and inconclusive results are first-class outputs. The platform's goal
+is not to guarantee a positive discovery; it is to reach valid evidence and the
+next defensible decision faster.

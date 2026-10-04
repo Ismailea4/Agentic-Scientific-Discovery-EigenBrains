@@ -238,7 +238,39 @@ New task data updates the sufficient statistics:
 
 Because the prior is weak, a modest amount of task-specific evidence can overturn it.
 
-## 11. Measured results
+## 11. Transfer from model portfolios to experiment portfolios
+
+The same policy applies when the scarce asset is simulation compute rather
+than a model call. Let `N_1 < N_2 < N_3` be nested sample sizes and let `G_k`
+mean that the preregistered verdict remains inconclusive at look `k`. Expected
+work under selective escalation is:
+
+\[
+E[C_{seq}]
+=C(N_1)+P(G_1)\{C(N_2)-C(N_1)\}
++P(G_1,G_2)\{C(N_3)-C(N_2)\}.
+\]
+
+A full-size design always pays `C(N_3)`. As with model verification, saved work
+is scientifically valuable only when the sequential policy preserves the
+reference conclusion. The recorded study freezes looks at 6, 12, and 24 seeds,
+uses Bonferroni-adjusted 98.33% intervals at each look, and escalates only while
+the result is inconclusive.
+
+Across five replicates and seven hypotheses, full-size compute divided by
+selective compute averaged `1.542` (95% CI `[1.280, 1.901]`), or `35.15%` mean
+compute saved. Selective escalation agreed with the 48-seed reference on
+`28/35` hypothesis-replicates versus `29/35` for the conventional 24-seed
+design. It rescued five incorrect early decisions and damaged none. This is
+near-matched agreement, not proof of equivalence, and it is development-stage
+evidence only.
+
+The important meta-agent result is therefore structural: uncertainty governs
+whether the system buys another model call or another block of experimental
+samples. Both policies expose the gate, rescue, damage, cost, latency/work, and
+agreement needed to audit the decision.
+
+## 12. Measured model and architecture results
 
 ### Single-model operational evidence
 

@@ -217,8 +217,8 @@ diagnostics, downside VaR/CVaR, marginal-agent economics, bounded weak priors,
 sequential racing, robust routing, stress tests, and architecture cards. It
 ships no fabricated model results and makes no challenge-performance claim.
 See [`docs/BENCHMARK_METHODOLOGY.md`](docs/BENCHMARK_METHODOLOGY.md) for the
-frozen evidence protocol and [`backend/EXPERIMENTS.md`](backend/EXPERIMENTS.md)
-for implementation-level experimental tooling.
+frozen evidence protocol and [`docs/CODEBASE.md`](docs/CODEBASE.md) for the
+implementation map.
 
 ## Environment
 
