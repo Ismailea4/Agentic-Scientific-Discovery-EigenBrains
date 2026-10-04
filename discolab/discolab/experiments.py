@@ -191,7 +191,16 @@ def _quiet_worker() -> None:
     sys.stdout = sys.stderr
 
 
+SINGLE_THREAD_ENV = ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")
+
+
 def _run_tasks(tasks: list[dict]) -> list[tuple[dict, Trace]]:
+    # Parallelism comes from processes; each worker's BLAS must be single-threaded.
+    # Otherwise every worker sizes OpenBLAS buffers for all cores, which exhausted
+    # memory on the recording machine (acceleration study attempt 1) and
+    # oversubscribes the CPU. Spawned workers inherit these variables.
+    for var in SINGLE_THREAD_ENV:
+        os.environ.setdefault(var, "1")
     out = []
     with ProcessPoolExecutor(max_workers=n_workers(), initializer=_quiet_worker) as pool:
         for task, cols in pool.map(_simulate, tasks, chunksize=4):
