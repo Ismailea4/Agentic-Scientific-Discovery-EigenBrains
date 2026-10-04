@@ -51,6 +51,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 .tmp-pytest-*/
+.verification/
 cover/
 
 # Translations
@@ -214,6 +215,7 @@ tempCodeRunnerFile.py
 
 # Local language toolchain caches
 .julia-depot/
+.npm-cache/
 
 # Marimo
 marimo/_static/
