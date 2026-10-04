@@ -125,6 +125,7 @@ def _empty_state() -> dict[str, Any]:
         "sec_per_generation": None,
         "calibration": {},
         "experiment_counter": 0,
+        "seed_block": 0,
         "next_decision": None,
     }
 
@@ -152,6 +153,7 @@ def _apply(s: dict, ev: dict) -> None:
         s["prereg_sha256"] = p["prereg_sha256"]
         s["compute_budget_sec"] = float(p["compute_budget_sec"])
         s["sec_per_generation"] = float(p["sec_per_generation"])
+        s["seed_block"] = int(p.get("seed_block", 0))  # labs before prereg v5 used block 0
         for h in p["hypotheses"]:
             s["hypotheses"][h["id"]] = {**h, "status": "open", "posterior": h["prior"], "history": []}
     elif t == "evidence_recorded":

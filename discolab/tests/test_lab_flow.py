@@ -144,3 +144,35 @@ def test_scoring_returns_a_portfolio_and_selection_records_membership(tmp_path):
     assert set(out["portfolio"]["ids"]) == {"E1", "E2"}  # different hypotheses: both worth running
     sel = lab.select_experiment(out["portfolio"]["ids"][1], "second portfolio item", "pi", tmp_path)
     assert sel["in_portfolio"] is True
+
+
+def test_labs_get_independent_seed_blocks(tmp_path):
+    from discolab.experiments import allocate_seeds
+    from discolab.prereg import load_prereg
+    pr = load_prereg()
+    a = allocate_seeds(pr, "development", 1, 4, lab_block=1)
+    b = allocate_seeds(pr, "development", 1, 4, lab_block=2)
+    assert not set(a) & set(b)
+    assert allocate_seeds(pr, "test", 1, 4, lab_block=2)[0] - allocate_seeds(pr, "test", 1, 4)[0] == \
+        2 * pr["seeds"]["lab_block_stride"]
+    import inspect
+    from discolab import experiments
+    assert "lab_block" not in inspect.getsource(experiments.calibrate_eps)  # shared metric definition
+    lab.init_lab(tmp_path / "labA", seed_block=7)
+    assert Ledger(tmp_path / "labA").state()["seed_block"] == 7
+    with pytest.raises(LedgerError):  # another lab may not reuse block 7
+        lab.init_lab(tmp_path / "labB", seed_block=7)
+    lab.init_lab(tmp_path / "labB", seed_block=8)
+
+
+def test_runs_record_and_use_their_lab_block(tmp_path):
+    import json
+    lab.init_lab(tmp_path / "lab", seed_block=3)
+    root = tmp_path / "lab"
+    lab.propose_experiment(PRED, "designer", root)
+    lab.score_experiments("designer", root)
+    lab.select_experiment("E1", "x", "pi", root)
+    lab.run_selected_experiment("pi", root)
+    manifest = json.loads((root / "runs" / "E1" / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["derived"]["lab_block"] == 3
+    assert min(manifest["seeds"]) >= 3_000_000

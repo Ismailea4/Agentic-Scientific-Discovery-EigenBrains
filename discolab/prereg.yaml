@@ -1,10 +1,23 @@
 # discolab pre-registration — frozen before any confirmatory or comparative run.
 # Changing anything below after the first experiment requires a new prereg
 # version; the ledger records the SHA-256 of this file with every event.
-version: 4
+version: 5
 frozen_on: "2026-10-04"
 
 changelog:
+  - version: 5
+    date: "2026-10-04"
+    reason: >-
+      Run 3's audit found that separate labs reused identical seeds (seed
+      allocation depended only on the experiment number), so run 3 reproduced
+      run 2's E4 digit for digit instead of replicating it independently.
+    deviations:
+      - >-
+        Per-lab seed blocks. Every new lab records a seed block K >= 1 at
+        initialisation; its development and test seeds are shifted by
+        K * lab_block_stride. Calibration seeds stay shared because the recovery
+        threshold is a metric definition. A lab refuses a block already used by
+        another lab or committed record. Labs created before v5 used block 0.
   - version: 4
     date: "2026-10-04"
     reason: >-
@@ -184,6 +197,7 @@ seeds:
   test: [5000, 8999]
   calibration: [9000, 9999]
   experiment_offset: 20
+  lab_block_stride: 1000000   # lab K uses development/test seeds shifted by K * stride (prereg v5)
   allocation: >-
     experiment j uses block_start + 100*(experiment_offset + j) + i (risk-model
     and training runs add 50), so no two experiments share runs and no v2 run

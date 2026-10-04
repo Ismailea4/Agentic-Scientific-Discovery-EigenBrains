@@ -115,8 +115,14 @@ def is_known_controller(name: str) -> bool:
     return False
 
 
-def allocate_seeds(prereg: dict, block: str, ordinal: int, n: int, offset: int = 0) -> list[int]:
+def allocate_seeds(prereg: dict, block: str, ordinal: int, n: int, offset: int = 0, lab_block: int = 0) -> list[int]:
+    """Seeds for one experiment. Each lab's development and test seeds are shifted by
+    lab_block * lab_block_stride, so separate labs are independent replications;
+    calibration seeds are shared because the recovery threshold is a metric definition."""
     lo, hi = prereg["seeds"][block]
+    if block != "calibration":
+        shift = lab_block * prereg["seeds"].get("lab_block_stride", 0)
+        lo, hi = lo + shift, hi + shift
     start = lo + 100 * (prereg["seeds"].get("experiment_offset", 0) + ordinal) + offset
     seeds = list(range(start, start + n))
     if seeds[-1] > hi:
@@ -277,7 +283,7 @@ def run_experiment(spec: ExperimentSpec, exp_id: str, ordinal: int, root: Path, 
     out_dir.mkdir(parents=True)
     t0 = time.perf_counter()
     block = "development" if derived["stage"] == "development" else "test"
-    seeds = allocate_seeds(prereg, block, ordinal, spec.n_seeds)
+    seeds = allocate_seeds(prereg, block, ordinal, spec.n_seeds, lab_block=derived.get("lab_block", 0))
     manifest = {"id": exp_id, "spec": spec.model_dump(), "derived": derived, "seeds": seeds, "seed_block": block,
                 "prereg_sha256": prereg["_sha256"], "code": code_fingerprint(), "workers": n_workers()}
     new_cal = {}
@@ -309,7 +315,8 @@ def _run_prediction(spec, seeds, prereg, derived, ordinal, out_dir, manifest, hy
         folds = [([p for p in pts if p.function != f], [p for p in pts if p.function == f]) for f in spec.landscapes]
         design = "leave-one-landscape-out over development landscapes"
     else:
-        dev_seeds = allocate_seeds(prereg, "development", ordinal, spec.n_seeds, offset=50)
+        dev_seeds = allocate_seeds(prereg, "development", ordinal, spec.n_seeds, offset=50,
+                                   lab_block=derived.get("lab_block", 0))
         manifest["train_seeds"] = dev_seeds
         res_tr = _run_tasks(_static_tasks(derived["dev_landscapes"], dev_seeds, prereg))
         res_te = _run_tasks(_static_tasks(spec.landscapes, seeds, prereg))
@@ -340,7 +347,8 @@ def _run_control(spec, seeds, prereg, derived, ordinal, out_dir, manifest, eps, 
     models, model_summary = {}, {}
     variants = [c for c in spec.controllers if c in PREDICTIVE_VARIANTS]
     if variants:
-        dev_seeds = allocate_seeds(prereg, "development", ordinal, spec.n_seeds, offset=50)
+        dev_seeds = allocate_seeds(prereg, "development", ordinal, spec.n_seeds, offset=50,
+                                   lab_block=derived.get("lab_block", 0))
         manifest["risk_model_seeds"] = dev_seeds
         res_fit = _run_tasks(_static_tasks(derived["dev_landscapes"], dev_seeds, prereg))
         for v in variants:

@@ -1,6 +1,7 @@
 """Command line for the lab:  python -m discolab.cli <command>
 
-  init              create the ledger in $DISCOLAB_HOME (fails if one exists)
+  init --seed-block K   create the ledger in $DISCOLAB_HOME with its own seed block
+                        K >= 1 (refused if another lab or record already uses K)
   state             compact research state
   result <E#>       compact result of one experiment
   trace             one line per ledger event (who did what, when)
@@ -24,7 +25,10 @@ def main(argv: list[str]) -> int:
         return 2
     cmd, *rest = argv
     if cmd == "init":
-        s = lab.init_lab()
+        if len(rest) != 2 or rest[0] != "--seed-block":
+            print("usage: init --seed-block K   (K >= 1, unique per lab)")
+            return 2
+        s = lab.init_lab(seed_block=int(rest[1]))
         print(json.dumps({"initialised": str(lab.lab_root()), "hypotheses": list(s["hypotheses"])}, indent=2))
     elif cmd == "state":
         print(json.dumps(state_summary(Ledger(lab.lab_root()).state()), indent=2))

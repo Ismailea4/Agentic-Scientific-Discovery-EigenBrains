@@ -29,10 +29,34 @@ def _ledger(root: Path | None = None) -> Ledger:
     return Ledger(root or lab_root())
 
 
-def init_lab(root: Path | None = None, actor: str = "operator") -> dict:
+def used_seed_blocks(exclude: Path) -> dict[int, str]:
+    """Seed blocks already claimed by other labs (lab_home/*) and committed records (results/*)."""
+    used = {}
+    pkg_root = Path(__file__).resolve().parent.parent
+    for base in (Path(exclude).resolve().parent, pkg_root / "results"):
+        if not base.is_dir():
+            continue
+        for led_path in base.glob("*/ledger.jsonl"):
+            if led_path.parent.resolve() == Path(exclude).resolve():
+                continue
+            first = Ledger(led_path.parent).events()[:1]
+            if first and first[0]["type"] == "lab_initialized":
+                used.setdefault(int(first[0]["payload"].get("seed_block", 0)), str(led_path.parent.name))
+    return used
+
+
+def init_lab(root: Path | None = None, actor: str = "operator", seed_block: int = 0) -> dict:
+    """seed_block >= 1 gives the lab its own development/test seeds (prereg v5); 0 is the
+    legacy shared block, kept for derived-protocol studies that set their own seed ranges."""
     led = _ledger(root)
     if led.events():
         raise LedgerError("this lab directory already has a ledger; use a fresh DISCOLAB_HOME")
+    if seed_block < 0:
+        raise ValueError("seed_block must be >= 0")
+    if seed_block >= 1:
+        clash = used_seed_blocks(led.root).get(seed_block)
+        if clash:
+            raise LedgerError(f"seed block {seed_block} is already used by {clash}; choose another")
     pr = load_prereg()
     hyps = []
     for h in pr["hypotheses"]:
@@ -46,6 +70,7 @@ def init_lab(root: Path | None = None, actor: str = "operator") -> dict:
         "hypotheses": hyps,
         "compute_budget_sec": pr["planner_policy"]["compute_budget_seconds"],
         "sec_per_generation": measure_sec_per_generation(),
+        "seed_block": seed_block,
     }, actor)
     return get_state(root)
 
@@ -105,7 +130,7 @@ def run_selected_experiment(actor: str, root: Path | None = None) -> dict:
     pr = load_prereg()
     cand = state["candidates"][eid]
     spec = ExperimentSpec(**cand["spec"])
-    derived = validate_spec(spec, pr, state["hypotheses"])
+    derived = {**validate_spec(spec, pr, state["hypotheses"]), "lab_block": state["seed_block"]}
     ordinal = int(eid[1:])
     try:
         out = run_experiment(spec, eid, ordinal, led.root, pr, derived, state["calibration"], state["hypotheses"])

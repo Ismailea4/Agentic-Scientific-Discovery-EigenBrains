@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Start a local Omnigent server + host for the discolab agent bundle.
-# Run from the discolab directory:  scripts/start_lab.sh [lab_name] [port]
+# Run from the discolab directory:  scripts/start_lab.sh [lab_name] [port] [seed_block]
+# A new lab needs its own seed block K >= 1 so separate labs are independent replications.
 #
 # Environment notes (Windows / Git Bash, verified with omnigent 0.16):
 #  - PYTHONUTF8=1: the host tunnel crashes on cp1252 console encoding otherwise.
@@ -13,6 +14,7 @@ cd "$(dirname "$0")/.."
 
 LAB_NAME="${1:-main}"
 PORT="${2:-6810}"
+SEED_BLOCK="${3:-}"
 export DISCOLAB_HOME="$(pwd)/lab_home/${LAB_NAME}"
 mkdir -p "$DISCOLAB_HOME/.omnigent"
 
@@ -32,7 +34,8 @@ export OMNIGENT_RUNNER_ENV_PASSTHROUGH="DISCOLAB_HOME${OPENALEX_API_KEY:+,OPENAL
 : "${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY must be set}"
 
 if [ ! -f "$DISCOLAB_HOME/ledger.jsonl" ]; then
-  python -m discolab.cli init
+  : "${SEED_BLOCK:?a new lab needs a seed block: scripts/start_lab.sh <lab_name> <port> <seed_block>=1,2,...}"
+  python -m discolab.cli init --seed-block "$SEED_BLOCK"
 fi
 
 DB="sqlite:///$(cd "$DISCOLAB_HOME/.omnigent" && pwd -W 2>/dev/null || pwd)/chat.db"
