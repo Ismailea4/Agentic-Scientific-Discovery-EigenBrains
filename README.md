@@ -443,7 +443,7 @@ Documents the mathematical framework, evaluation methodology, and metrics used t
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/Agentic-Scientific-Discovery-EigenBrains.git
+git clone https://github.com/Ismailea4/Agentic-Scientific-Discovery-EigenBrains.git
 
 cd Agentic-Scientific-Discovery-EigenBrains
 ```
@@ -462,7 +462,7 @@ Then configure the required API keys and Omnigent-related credentials.
 
 ---
 
-## 3. Set up the backend
+## 3. Set up and start the backend
 
 ```bash
 cd backend
@@ -485,16 +485,23 @@ source .venv/bin/activate
 Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-Run the backend according to the configuration described in the project documentation.
+Start the FastAPI backend:
+
+```bash
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+Keep this terminal running. The backend health endpoint is
+`http://localhost:8000/health`.
 
 ---
 
 ## 4. Start the frontend
 
-From the project root:
+Open a second terminal at the repository root and run:
 
 ```bash
 cd frontend
@@ -503,7 +510,44 @@ npm install
 npm run dev
 ```
 
-The Vite development server will provide the Noesis research dashboard.
+Vite will print the exact local URL. It is normally
+`http://localhost:5173`.
+
+Open that URL in your browser. The status badge in the top bar should show
+**Ready** when the frontend can reach the backend. If it shows **Offline**,
+make sure the backend terminal is still running on port 8000.
+
+---
+
+## 5. Optional: run the Discovery Lab recorded-results bridge
+
+The Discovery Lab bridge is a separate, read-only service for inspecting the
+recorded files under `discolab/results/`. It is not required for the Noesis
+frontend above, and the current frontend does not use the bridge to populate
+its status badge or data views.
+
+Open a third terminal at the repository root and install the local
+`discolab` package once:
+
+```bash
+cd discolab
+python -m pip install -e .
+```
+
+Then start the bridge from the `discolab` directory:
+
+```bash
+python -m discolab.bridge --port 8765
+```
+
+Verify that it is serving the recorded sources by opening
+`http://127.0.0.1:8765/lab/sources`. The committed sources include:
+
+- `results/run1_prereg_v1`
+- `results/run2_prereg_v2`
+
+The bridge reads these files and writes nothing. To stop it, press
+`Ctrl+C` in its terminal.
 
 ---
 
