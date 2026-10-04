@@ -101,6 +101,22 @@ bash scripts/stop_lab.sh main
 Requires `ANTHROPIC_API_KEY` in the environment (never written to disk by the lab).
 On Linux/macOS use `.venv/bin/python`. Windows notes are in `scripts/start_lab.sh`.
 
+## Python SDK and language bridge
+
+The package exports a stable Python facade:
+
+```python
+from discolab import DiscoveryLab, Experiment
+
+lab = DiscoveryLab("lab_home/example", actor="researcher")
+lab.initialize()
+```
+
+Rust and Julia clients use the same validated transitions through
+`python -m discolab.rpc --root <lab>`. The protocol and language packages live
+under [`../sdk`](../sdk/README.md). The RPC bridge is a command interface for
+SDKs; `discolab.bridge` is the separate read-only HTTP/SSE projection for the UI.
+
 ## Results
 
 _Filled from the ledger and artifacts after each recorded run; see below._
