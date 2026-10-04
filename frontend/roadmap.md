@@ -1,0 +1,11 @@
+# Roadmap
+- [x] Rename project to Noesis
+- [x] Connect the four lab views to the discovery-lab feed (live + recorded runs)
+- [x] Connection setting (local or pasted public address) and source picker
+- [x] Samples switched to the genetic-algorithm stagnation study
+- [x] Home: no error noise when core API is offline; recorded questions as buttons on the last chapter only, revealed on field click
+- [x] Discovery Loop: per-agent "what it did" summaries
+- [x] Human Approval Gate: pending approvals, blocked/automatic experiments, budget
+- [x] Research Record: collapsible sections
+- [x] Enhanced genie tab transitions and clearer statistical/LaTeX-style notation
+- [x] Research Record: structured critic analysis and clearer updated decisions
