@@ -13,6 +13,13 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from . import lab
+from .evidence import (
+    ArtifactSchema,
+    EvidenceStore,
+    ExperimentSpecV2,
+    MetricSpec,
+    RunContext,
+)
 from .ledger import Ledger
 from .views import result_summary
 
@@ -87,6 +94,7 @@ class DiscoveryLab:
     def __init__(self, root: str | Path, *, actor: str = "python-sdk"):
         self.root = Path(root).resolve()
         self.actor = actor
+        self._research_contexts: dict[str, RunContext] = {}
 
     @property
     def protocol_version(self) -> str:
@@ -152,3 +160,75 @@ class DiscoveryLab:
             spec.get("feature_set"), spec.get("controller"), self.actor, self.root,
             baseline_feature_set=spec.get("baseline_feature_set"), comparator=spec.get("comparator"),
         )
+
+    # Generic, domain-independent evidence runs. These methods are also the
+    # stable boundary used by the Rust and Julia bridge clients.
+    def begin_research_run(self, spec: ExperimentSpecV2 | dict[str, Any]) -> dict[str, Any]:
+        parsed = spec if isinstance(spec, ExperimentSpecV2) else ExperimentSpecV2.from_dict(spec)
+        context = EvidenceStore(self.root).begin(parsed)
+        self._research_contexts[context.run_id] = context
+        return {"run_id": context.run_id, "status": "running", "seed": context.seed}
+
+    def emit_research_artifact(
+        self,
+        run_id: str,
+        *,
+        name: str,
+        kind: str,
+        value: Any,
+        schema: str | dict[str, Any],
+        stage: str = "raw",
+        parents: Iterable[str] = (),
+    ) -> dict[str, Any]:
+        context = self._research_context(run_id)
+        resolved = ArtifactSchema.from_dict(schema) if isinstance(schema, dict) else schema
+        kwargs = {"schema": resolved, "stage": stage, "parents": tuple(parents)}
+        if kind == "table":
+            return context.emit.table(name, value, **kwargs)
+        if kind == "array":
+            return context.emit.array(name, value, **kwargs)
+        if kind == "json":
+            return context.emit.json(name, value, **kwargs)
+        raise ValueError(f"unknown artifact kind {kind!r}")
+
+    def record_research_metric(
+        self,
+        run_id: str,
+        name: str,
+        value: float,
+        spec: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        parsed = MetricSpec.from_dict(spec) if spec is not None else None
+        return self._research_context(run_id).metric(name, value, spec=parsed)
+
+    def consume_research_budget(self, run_id: str, evaluations: int = 0) -> dict[str, Any]:
+        context = self._research_context(run_id)
+        context.consume(evaluations)
+        return {"run_id": run_id, "evaluations": context.evaluations,
+                "elapsed_seconds": context.elapsed_seconds}
+
+    def finalize_research_run(self, run_id: str) -> dict[str, Any]:
+        result = self._research_context(run_id).finalize()
+        self._research_contexts.pop(run_id, None)
+        return result
+
+    def inspect_research_run(self, run_id: str) -> dict[str, Any]:
+        return EvidenceStore(self.root).inspect(run_id)
+
+    def validate_research_run(self, run_id: str) -> dict[str, Any]:
+        return EvidenceStore(self.root).validate(run_id)
+
+    def compare_research_runs(self, left: str, right: str) -> dict[str, Any]:
+        return EvidenceStore(self.root).compare(left, right)
+
+    def accept_research_run(self, run_id: str, rationale: str) -> dict[str, Any]:
+        return EvidenceStore(self.root).accept(run_id, rationale)
+
+    def reproduce_research_run(self, run_id: str) -> dict[str, Any]:
+        return EvidenceStore(self.root).reproduce(run_id)
+
+    def _research_context(self, run_id: str) -> RunContext:
+        try:
+            return self._research_contexts[run_id]
+        except KeyError as exc:
+            raise KeyError(f"no open research run {run_id!r} in this SDK process") from exc
