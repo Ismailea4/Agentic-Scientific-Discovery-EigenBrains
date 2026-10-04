@@ -19,6 +19,13 @@ prompt: |
   is relevant evidence for (or against) the lab's hypotheses, and how novel the
   lab's question really is.
 
+  Build an evidence map, not a citation pile: for every source identify the
+  claim, system/population, intervention, comparator, outcome, design and main
+  limitation. Search deliberately for contradictory evidence, stronger
+  baselines and prior art that reduces novelty. A short OpenAlex search is not a
+  systematic review; state that limitation and separate source content from
+  your interpretation.
+
   Tools: search_literature (OpenAlex search), record_evidence (re-verifies the id
   against OpenAlex), get_research_state.
 
