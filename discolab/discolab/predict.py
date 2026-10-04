@@ -67,7 +67,7 @@ def stack(points: list[RunPoints], fs: str) -> tuple[np.ndarray, np.ndarray]:
 
 def evaluate_feature_sets(folds: list[tuple[list[RunPoints], list[RunPoints]]], feature_sets: list[str],
                           baseline: str, n_boot: int = 2000, seed: int = 0,
-                          pairs: list[tuple[str, str]] | None = None) -> dict:
+                          pairs: list[tuple[str, str]] | None = None, level: float = 0.95) -> dict:
     """Fit per fold on train runs only; pool held-out scores across folds."""
     if baseline not in feature_sets:
         raise ValueError("baseline feature set must be among those evaluated")
@@ -99,8 +99,10 @@ def evaluate_feature_sets(folds: list[tuple[list[RunPoints], list[RunPoints]]], 
         for fs in feature_sets:
             boot[fs][b] = auroc(np.concatenate([scores[fs][i] for i in pick]), yb)
 
+    tail = (1.0 - level) / 2.0
+
     def ci(arr, est):
-        return Interval(float(est), float(np.nanquantile(arr, 0.025)), float(np.nanquantile(arr, 0.975)))
+        return Interval(float(est), float(np.nanquantile(arr, tail)), float(np.nanquantile(arr, 1.0 - tail)), level)
 
     def compare(a: str, b: str) -> dict:
         d = boot[a] - boot[b]

@@ -1,0 +1,60 @@
+# Selective-escalation acceleration study — frozen before any data are generated.
+#
+# Question: can the lab reach the same scientific conclusions as a conventional
+# full-size design with less simulation compute, by running a small experiment
+# first and escalating to more seeds only when the result is inconclusive?
+#
+# Motivation: the EigenBrains benchmark's final result. There, selective
+# escalation (a cheap model first, a second model only when a frozen gate
+# fires) preserved quality while using 16% less cost and 35% less latency than
+# always running both models. This study transfers that policy from model
+# calls to experiments, with the same economics (gate rate, rescue, damage).
+version: 1
+frozen_on: "2026-10-04"
+base_prereg: prereg.yaml (v3) — hypotheses, analysis and verdict rules unchanged
+
+hypotheses: [H1, H2, H3, H5, H4, H6, H7]    # all development-stage tests
+replicates: 5
+
+data: >-
+  For each replicate, every hypothesis's development-stage design is run once at
+  24 seeds on a fresh seed block. A design with k seeds is the analysis
+  restricted to the first k seeds of those runs, so smaller looks are exact
+  nested subsets, as in a real sequential design.
+reference: >-
+  every hypothesis tested once at 48 seeds on its own seed block; its verdict
+  (supported / inconclusive / refuted) is the reference conclusion.
+seeds: >-
+  replicate r: development seeds 100000 + 20000*r onward; reference: 300000
+  onward. None overlap the prereg blocks or each other.
+
+strategies:
+  always_large: one look at 24 seeds with 95% intervals (conventional full-size design)
+  always_small: one look at 6 seeds with 95% intervals (cheap baseline; expected to lose agreement)
+  escalate: >-
+    looks at 6, 12 and 24 seeds; at each look the pre-registered verdict rule is
+    applied with 98.33% intervals (alpha 0.05 split over three looks,
+    Bonferroni); stop at the first supported or refuted verdict, otherwise
+    escalate; still inconclusive at 24 seeds -> open.
+
+gate: escalate exactly when the current look's verdict is inconclusive (frozen; no tuning)
+final_status: supported -> supported, refuted -> refuted, inconclusive -> open
+agreement: final status matches the reference verdict (supported/supported, refuted/refuted, open/inconclusive)
+
+cost: >-
+  simulated generations of the stopping design from the lab's run_plan for that
+  seed count (risk-model fitting included); the one-time recovery-threshold
+  calibration is charged once per replicate to every strategy that runs a
+  control experiment.
+
+economics:   # EigenBrains escalation analysis
+  - P(G): fraction of hypothesis-replicates where the first look escalated
+  - rescue: the first look disagreed with the reference and the final status agrees
+  - damage: the first look agreed with the reference and the final status does not
+  - acceleration: cost(always_large) / cost(escalate) per replicate; mean with a bootstrap 95% CI
+  - agreement is reported for all three strategies next to every cost figure
+
+limitations_declared_in_advance:
+  - in a replayed control design the B3 risk models were fitted on the 24-seed
+    design's development seeds for every look (a true k-seed design would fit on fewer)
+  - development-stage landscapes only; held-out confirmation is out of scope
