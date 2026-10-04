@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/overlay';
 import { StatusBadge } from '../components/ui';
 import { useLab } from './LabContext';
+import { useSound } from '../hooks/useSound';
 
 export function sourceLabel(kind: 'live' | 'record' | undefined) {
   return kind === 'live' ? 'LIVE' : kind === 'record' ? 'RECORD' : 'SAMPLE';
@@ -13,6 +14,7 @@ export function LabBar() {
   const [draft, setDraft] = useState<string | null>(null);
   const value = draft ?? lab.baseUrl;
   const kind = lab.source?.kind;
+  const sound = useSound();
 
   return (
     <div className="lab-bar" role="region" aria-label="Discovery lab connection">
@@ -39,6 +41,7 @@ export function LabBar() {
       <StatusBadge tone={lab.status === 'connected' ? 'ok' : lab.status === 'checking' ? 'idle' : 'bad'}>
         {lab.status === 'connected' ? 'Lab connected' : lab.status === 'checking' ? 'Checking' : 'Lab offline'}
       </StatusBadge>
+      <button type="button" className="btn lab-settings" aria-pressed={sound.on} onClick={sound.toggle}>{sound.on ? 'Sound on' : 'Muted'}</button>
       <Popover>
         <PopoverTrigger label="Lab connection settings" className="btn lab-settings">Connection</PopoverTrigger>
         <PopoverContent title="Discovery lab feed">

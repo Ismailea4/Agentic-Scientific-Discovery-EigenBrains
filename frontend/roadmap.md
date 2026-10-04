@@ -9,3 +9,4 @@
 - [x] Research Record: collapsible sections
 - [x] Enhanced genie tab transitions and clearer statistical/LaTeX-style notation
 - [x] Research Record: structured critic analysis and clearer updated decisions
+- [x] Discovery story: 10-step connected narrative, handoff pulses, sound + mute

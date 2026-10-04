@@ -7,6 +7,7 @@ import { HypothesisSymbol, PosteriorProbability, ScientificText } from '../compo
 import { useShell } from '../components/shell';
 import { EmptyState, StatusBadge } from '../components/ui';
 import { useLab } from './LabContext';
+import { DiscoveryStory } from './DiscoveryStory';
 
 /* ------------------------------------------------------------ helpers */
 
@@ -92,7 +93,7 @@ function achievements(id: string, s: LabState, activity: LabActivity[]): string[
 }
 
 export function LiveDiscovery() {
-  const { state, activity } = useLab();
+  const { state, activity, source } = useLab();
   const { setInspector, setInspectorOpen } = useShell();
   const [active, setActive] = useState<string | null>(null);
 
@@ -129,7 +130,7 @@ export function LiveDiscovery() {
 
   return (
     <section className="experience experience-workspace lab-view">
-      <p className="lab-question"><span className="eyebrow">Question</span>{state.question}</p>
+      <DiscoveryStory state={state} activity={activity} kind={source?.kind ?? 'record'} />
       <LoopStrip reached={reachedStage(state)} />
       <div className="lab-agents">
         {AGENTS.map((a) => {
@@ -406,7 +407,7 @@ function ExperimentEntry({ id, title }: { id: string; title: string }) {
 
   useEffect(() => {
     if (!open || data || !sourceId) return;
-    labApi.experiment(baseUrl, sourceId, id).then(setData).catch((r: unknown) => setError(r instanceof ApiError ? r.message : String(r)));
+    labApi.experiment(baseUrl, sourceId, id).then(setData).catch((r: unknown) => setError(r instanceof ApiError && r.status === 502 ? 'The lab feed could not produce a summary for this experiment (its data is in an older format). The rest of the run is unaffected.' : r instanceof ApiError ? r.message : String(r)));
   }, [baseUrl, data, id, open, sourceId]);
 
   return (
