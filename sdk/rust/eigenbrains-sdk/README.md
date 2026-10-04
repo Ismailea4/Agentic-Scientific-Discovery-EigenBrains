@@ -1,29 +1,35 @@
 # EigenBrains Rust SDK
 
-This crate combines a persistent client for the versioned local Python bridge
-with native numerical kernels. Generic evidence runs use typed
-`ResourceBudget`, `FieldSchema`, `ArtifactSchema`, `MetricSpec`, and
-`ResearchExperimentSpec` structs, followed by `begin_research_run`, semantic
-artifact/metric calls, budget accounting, and final validation.
+A typed client for the versioned local Python bridge plus native numerical
+kernels. **A Python sidecar is required**: the client starts
+`python -m discolab.rpc` (configure with `BridgeConfig`: `python`, `actor`,
+`python_path`, `allow_runner_module`), so `discolab` must be importable.
 
-The Python package remains the authoritative evidence runtime. Remote
-validation errors are returned as `SdkError::Remote` rather than flattened into
-transport failures. The full workflow and current limitations are documented
-in [`../../../docs/RESEARCH_SDK.md`](../../../docs/RESEARCH_SDK.md).
+The crate provides:
 
-The Rust crate provides:
-
-- a persistent client covering every protocol-v1 lifecycle method;
-- structured remote errors that retain both the Python error code and message;
-- native normalized-entropy, CVaR, and Wilson-interval kernels;
-- an end-to-end Python bridge test plus native numerical tests.
+- validated contract builders (`ResearchExperimentSpec::builder`,
+  `ArtifactSchema::table/array/json`, `FieldSchema::number/...`,
+  `MetricSpec::new`) mirroring the Python rules, with `to_json`/`from_json`;
+- `with_research_run` / `with_resumed_research_run`, which finalize on success
+  and record `research.fail` on any error;
+- a client method for every protocol-v1 method (`METHODS`), including
+  checkpoint, resume, listing (`RunFilter`), terminal decisions, lineage and
+  bundles; remote errors keep their Python code and message
+  (`SdkError::Remote`), local contract errors are `SdkError::Invalid`;
+- kernels: normalized population entropy (following the Python telemetry
+  operation by operation, including NumPy's pairwise summation), batch
+  entropy, CVaR, Wilson interval, quantiles;
+- `npy::read_f64` for the float64 C-order arrays the runtime emits.
 
 ```bash
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
 cargo test
-cargo run --example telemetry --release
+cargo run --example evidence -- study
 ```
 
-The telemetry example is a local timing harness, not a published benchmark.
-The crate is validated on Windows with Rust 1.99.0. The bridge test starts the
-authoritative Python RPC process from the source checkout, exercises validated
-proposal/scoring/selection transitions, and verifies structured error recovery.
+Tests check method and contract parity against `sdk/protocol/v1`, reject every
+invalid fixture spec, and run a live bridge covering scoped runs, failures,
+listing, checkpoint/resume across bridge processes, decisions and bundles.
+The `telemetry` example is a local timing harness, not a published benchmark.
+Validated on Windows with Rust 1.99.0.
