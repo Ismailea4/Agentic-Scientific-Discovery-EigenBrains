@@ -19,7 +19,7 @@ import { LabBar } from './lab/LabBar';
 import { DiscoveryStory, SAMPLE_STORY } from './lab/DiscoveryStory';
 import { LabProvider, useLab } from './lab/LabContext';
 import { LiveApproval, LiveDiscovery, LiveHypotheses, LiveRecord } from './lab/LiveViews';
-import noesisLogo from '../assets/logo_noesis.png';
+import noesisLogo from '../assets/logo_neosis.png';
 
 const NAV: { id: AppView; label: string; icon: typeof IconHome; reveal: number }[] = [
   { id: 'home', label: 'Home', icon: IconHome, reveal: 0 },
