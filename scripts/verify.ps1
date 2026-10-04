@@ -90,7 +90,7 @@ try {
 
     $evidenceArgs = @("-m", "scripts.verify_evidence", "--root", $repoRoot)
     if ($ClaimsOnly) { $evidenceArgs += "--claims-only" }
-    Invoke-Check "Evidence claims and deterministic reproduction" {
+    Invoke-Check "Evidence claims, sealed study, and deterministic reproduction" {
         python @evidenceArgs
     }
 
