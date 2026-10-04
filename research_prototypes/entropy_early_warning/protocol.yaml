@@ -1,0 +1,153 @@
+# Frozen study protocol. Committed before any study data were generated; every
+# evidence run records this file's SHA-256 in its provenance. Changes after the
+# freeze are deviations and must be listed in the report with a reason.
+study_id: entropy-early-warning-v1
+protocol_version: 1
+status: frozen
+
+question: >-
+  Do population-entropy dynamics provide statistically meaningful early warning
+  of evolutionary-search stagnation beyond fitness-history features alone?
+
+hypotheses:
+  primary:
+    id: EW1
+    statement: >-
+      On held-out landscapes never used for development, an L2 logistic model on
+      fitness-history plus population-entropy features predicts stagnation onset
+      with higher AUROC than the same model on fitness-history features alone.
+    estimand: delta_auroc = AUROC(fitness+entropy) - AUROC(fitness), held-out test points
+    null: delta_auroc <= 0
+    sesoi: 0.02            # smallest AUROC gain we would call meaningful
+  secondary:               # reported with intervals; no confirmatory claims
+    - id: EW2
+      contrast: [fitness+dispersion+entropy, fitness+dispersion]
+      meaning: does entropy add warning beyond genotypic dispersion (nested)?
+    - id: EW3
+      contrast: [fitness+dispersion, fitness]
+      meaning: classical genotypic-diversity baseline
+    - id: EW4
+      contrast: [entropy_only, fitness]
+      meaning: entropy alone versus fitness history
+    - id: EW5
+      contrast: [fitness+entropy, fitness]
+      meaning: per held-out landscape (heterogeneity), descriptive only
+
+design:
+  algorithm: discolab.ga.run_ga (real-coded generational GA), unmodified
+  ga:
+    pop_size: 50
+    dim: 10
+    crossover: SBX(eta=15, p=0.9)
+    selection: binary tournament
+    elitism: 1 (re-evaluated every generation)
+    mutation: per-gene Gaussian, sigma = 0.05 * box width
+  generations: 200
+  environment: static (one epoch); the landscape is translated by an offset drawn from the run seed
+  data_policies:           # fixed per-gene mutation rate m/d, discolab.controllers.Fixed
+    B0_fixed_x0.5: 0.5
+    B0_fixed_x1: 1.0
+    B0_fixed_x2: 2.0
+  landscapes:
+    development: [rastrigin, ackley]
+    held_out: [griewank, levy, styblinski_tang]
+  seeds:
+    development: [700000, 700049]   # inclusive; 50 seeds per landscape and policy
+    held_out: [800000, 800049]
+    rule: >-
+      common random numbers: a seed fixes the initial population and the
+      translation for every policy on that landscape. Ranges are disjoint from
+      each other and from the laboratory's preregistered seed blocks.
+  unit_of_analysis: >-
+    cluster = (landscape, seed). Runs of the three policies that share a seed
+    share their initial population, so they are resampled together.
+  label:
+    horizon_K: 10
+    definition: >-
+      at-risk generations are those with an improvement event (>0.1% drop in
+      best error); y_t = 1 when no improvement event occurs in (t, t+K].
+      Generations whose look-ahead leaves the run are excluded
+      (discolab.features.stagnation_labels).
+  population_snapshots:
+    purpose: independent native recomputation of the entropy telemetry (Rust)
+    selection: development landscapes, all three policies, seeds 700000-700004, generations 0,10,...,190
+    count: 600
+
+features:
+  source: discolab.features.FEATURE_SETS (computed only from observable history)
+  primary: [fitness, fitness+entropy]
+  secondary: [fitness+dispersion, fitness+dispersion+entropy, entropy_only]
+classical_rules:          # non-learned scores; higher = more stagnation risk
+  progress_rate_rule: minus the number of improvement events in generations t-9..t
+  diversity_rule: minus genotypic dispersion D_t
+  note: >-
+    the stall counter is not a usable rule here because it is 0 at every
+    at-risk generation by construction.
+model: >-
+  L2-regularised logistic regression (lambda = 0.01) on features standardised
+  with training-set statistics only (discolab.predict.fit_logistic).
+
+analysis:
+  exploratory_stage:
+    data: development landscapes only
+    scheme: leave-one-landscape-out (train rastrigin -> test ackley, and reverse), pooled
+    status: exploratory; may inform interpretation, never the confirmatory rule
+  confirmatory_stage:
+    train: all development runs (both development landscapes)
+    test: all held-out runs
+    primary_test: EW1
+    interval: >-
+      paired cluster bootstrap, 2000 resamples of (landscape, seed) clusters,
+      stratified by landscape; the same resamples for every feature set;
+      percentile 95% interval; resampling indices from the SDK child stream
+      "bootstrap" of the analysis run seed
+    decision_rule:
+      no_meaningful_gain: 95% upper bound < sesoi
+      supported: 95% lower bound > 0 and point estimate >= sesoi
+      inconclusive: otherwise
+    effect_sizes: [delta_auroc, delta_brier (fitness - fitness+entropy), auroc per feature set]
+  robustness:
+    - Julia recomputes every AUROC from the hashed predictions artifact (parity <= 1e-12)
+    - Julia paired clustered AUROC (Obuchowski 1997) for EW1 as an analytic cross-method interval
+  multiplicity: >-
+    one confirmatory test. Secondary contrasts are reported with intervals and
+    Holm-adjusted bootstrap p-values for information only.
+  exclusions: none. Every simulated run is analysed; runs contributing no
+    at-risk points are counted and reported, never dropped selectively.
+
+leakage_controls:
+  - development and held-out landscapes are disjoint (asserted)
+  - development and held-out seeds are disjoint (asserted)
+  - models and feature standardisation are fitted on development runs only (asserted)
+  - held-out data enter only the confirmatory analysis run
+  - the protocol hash is recorded by every run; the report lists deviations
+
+cross_language:
+  python: authoritative simulation, features, models, bootstrap
+  rust:
+    role: independent recomputation of population entropy on the 600 hashed snapshots
+    parity: max |H_rust - H_python| <= 1e-12, otherwise the study fails closed
+    benchmark: >-
+      Python (discolab.telemetry.population_entropy) and Rust (release build)
+      each process the full snapshot batch: 3 warm-up and 30 timed repetitions;
+      report median, interquartile range, minimum and maximum. In-memory compute
+      only (file reading excluded).
+  julia:
+    role: statistics on the hashed predictions artifact (AUROC parity, Obuchowski interval)
+
+integrity_checks:
+  reproduction: the confirmatory analysis run is reproduced with the SDK; every artifact must be byte-identical
+  bundle: all study runs exported to one content-addressed bundle and verified
+  corruption_control: >-
+    one byte of a raw artifact is flipped in a copy of the bundle; verification
+    must fail. A copy of a run with a corrupted artifact must fail validation
+    and is rejected as evidence with the reason recorded.
+  decisions: the confirmatory analysis run is accepted only if all checks above pass
+
+acceleration_measurements:
+  - wall time from study start to the confirmatory run being accepted as evidence
+  - wall time per stage (simulation, analysis, cross-language, integrity)
+  - SDK bookkeeping overhead: time spent hashing and validating relative to compute
+  - bookkeeping items performed automatically (hashes, validated rows, provenance
+    fields, lineage edges, lifecycle events), counted from the records
+  - no comparison with human effort is claimed without a measurement of it
