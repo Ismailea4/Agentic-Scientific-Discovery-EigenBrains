@@ -62,3 +62,63 @@ def test_end_to_end_small_loop(tmp_path):
     assert st["candidates"]["E1"]["status"] == "analyzed"
     replay = Ledger(tmp_path).state()  # fold is reproducible
     assert replay["hypotheses"]["H1"]["posterior"] == st["hypotheses"]["H1"]["posterior"]
+
+
+def test_failed_run_releases_selection_and_is_recorded(tmp_path, monkeypatch):
+    lab.init_lab(tmp_path)
+    lab.propose_experiment(PRED, "designer", tmp_path)
+    lab.score_experiments("designer", tmp_path)
+    lab.select_experiment("E1", "highest utility", "pi", tmp_path)
+
+    def boom(*a, **k):
+        raise RuntimeError("simulated crash")
+
+    monkeypatch.setattr(lab, "run_experiment", boom)
+    with pytest.raises(RuntimeError):
+        lab.run_selected_experiment("pi", tmp_path)
+    st = Ledger(tmp_path).state()
+    assert st["selected"] is None
+    assert st["candidates"]["E1"]["status"] == "failed"
+    assert "simulated crash" in st["candidates"]["E1"]["error"]
+    with pytest.raises(LedgerError):  # a failed experiment cannot be re-selected
+        lab.select_experiment("E1", "retry", "pi", tmp_path)
+
+
+def test_operator_can_abort_an_interrupted_run(tmp_path):
+    lab.init_lab(tmp_path)
+    lab.propose_experiment(PRED, "designer", tmp_path)
+    lab.score_experiments("designer", tmp_path)
+    lab.select_experiment("E1", "highest utility", "pi", tmp_path)
+    lab.abort_experiment("E1", "process killed", "operator", tmp_path)
+    assert Ledger(tmp_path).state()["selected"] is None
+
+
+def test_registered_hypotheses_must_be_testable(tmp_path):
+    lab.init_lab(tmp_path)
+    with pytest.raises(ValueError):  # run-1 failure mode: a feature set that does not exist
+        lab.register_hypothesis("H9", "s", "n", "prediction", "fitness+magic", None, "critic", tmp_path)
+    with pytest.raises(ValueError):
+        lab.register_hypothesis("H9", "s", "n", "control", None, "B9_unknown", "critic", tmp_path)
+    ok = lab.register_hypothesis("H9", "s", "n", "control", None, "B3_predictive", "critic", tmp_path,
+                                 comparator="B0_fixed_x0.8")
+    assert ok["comparator"] == "B0_fixed_x0.8"
+
+
+def test_nested_contrast_requires_its_baseline(tmp_path):
+    lab.init_lab(tmp_path)
+    spec = {**PRED, "hypotheses": ["H5"], "feature_sets": ["fitness", "fitness+dispersion+entropy"]}
+    with pytest.raises(ValueError):  # H5 is compared with fitness+dispersion, which is missing
+        lab.propose_experiment(spec, "designer", tmp_path)
+    spec["feature_sets"].append("fitness+dispersion")
+    assert lab.propose_experiment(spec, "designer", tmp_path)["id"] == "E1"
+
+
+def test_rate_matched_control_spec_validates(tmp_path):
+    lab.init_lab(tmp_path)
+    spec = {"kind": "control", "title": "H6 rate-matched control", "rationale": "timing vs rate",
+            "hypotheses": ["H6"], "landscapes": ["rastrigin", "ackley"], "n_seeds": 4,
+            "controllers": ["B0_fixed", "B3_predictive"]}
+    with pytest.raises(ValueError):  # comparator B0_fixed_x0.8 missing
+        lab.propose_experiment(spec, "designer", tmp_path)
+    spec["controllers"].append("B0_fixed_x0.8")
+    assert lab.propose_experiment(spec, "designer", tmp_path)["stage"] == "development"

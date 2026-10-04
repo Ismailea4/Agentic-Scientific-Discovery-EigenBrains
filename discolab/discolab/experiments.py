@@ -26,7 +26,7 @@ from .ga import GAConfig, Trace, run_ga
 from .landscapes import get_landscape, make_shift_schedule
 from .metrics import rescue_damage, run_outcome
 from .predict import evaluate_feature_sets, fit_logistic, run_points, stack
-from .stats import Interval, bootstrap_mean_diff, cvar, hodges_lehmann, holm, mcnemar_exact, wilcoxon_p, wilson
+from .stats import Interval, bootstrap_mean_diff, cvar, hodges_lehmann, holm, mcnemar_exact, wilcoxon_p
 
 PKG_DIR = Path(__file__).resolve().parent
 B3_RUNTIME_FACTOR = 1.6  # B3 recomputes features each generation; estimate only, actual time is recorded
@@ -73,8 +73,10 @@ def validate_spec(spec: ExperimentSpec, prereg: dict, hypotheses: dict[str, dict
             raise ValueError(f"unknown feature sets {bad}; known: {sorted(FEATURE_SETS)}")
         for hid in spec.hypotheses:
             h = hypotheses[hid]
-            if h["family"] != "prediction" or h.get("feature_set") not in fs:
-                raise ValueError(f"{hid} is not testable by this prediction experiment")
+            base = h.get("baseline_feature_set") or prereg["prediction_study"]["baseline_features"]
+            if h["family"] != "prediction" or h.get("feature_set") not in fs or base not in fs:
+                raise ValueError(f"{hid} needs feature_sets containing {h.get('feature_set')!r} and its "
+                                 f"comparison baseline {base!r}")
         if stage == "development" and len(spec.landscapes) < 2:
             raise ValueError("development-stage prediction needs >= 2 landscapes (leave-one-landscape-out)")
     else:
@@ -83,19 +85,38 @@ def validate_spec(spec: ExperimentSpec, prereg: dict, hypotheses: dict[str, dict
         cs = spec.controllers or []
         if "B0_fixed" not in cs:
             raise ValueError("controllers must include the B0_fixed reference")
-        bad = [c for c in cs if c not in C.CONTROLLERS]
+        bad = [c for c in cs if not is_known_controller(c)]
         if bad:
-            raise ValueError(f"unknown controllers {bad}; known: {list(C.CONTROLLERS)}")
+            raise ValueError(f"unknown controllers {bad}; known: {list(C.CONTROLLERS)} + "
+                             f"{list(PREDICTIVE_VARIANTS)} + rate-matched 'B0_fixed_x<m>' (0.25 <= m <= 4)")
         for hid in spec.hypotheses:
             h = hypotheses[hid]
-            if h["family"] != "control" or h.get("controller") not in cs:
-                raise ValueError(f"{hid} is not testable by this control experiment")
+            comparator = h.get("comparator") or "best_baseline"
+            if h["family"] != "control" or h.get("controller") not in cs or \
+                    (comparator != "best_baseline" and comparator not in cs):
+                raise ValueError(f"{hid} needs controllers containing {h.get('controller')!r} and its "
+                                 f"comparator {comparator!r}")
     return {"stage": stage, "dev_landscapes": dev}
+
+
+# Predictive (B3-family) controllers and the feature set their frozen risk model uses.
+PREDICTIVE_VARIANTS = {"B3_predictive": "fitness+entropy", "B3d_predictive": "fitness+dispersion"}
+
+
+def is_known_controller(name: str) -> bool:
+    if name in C.CONTROLLERS or name in PREDICTIVE_VARIANTS:
+        return True
+    if name.startswith("B0_fixed_x"):
+        try:
+            return 0.25 <= float(name.removeprefix("B0_fixed_x")) <= 4.0
+        except ValueError:
+            return False
+    return False
 
 
 def allocate_seeds(prereg: dict, block: str, ordinal: int, n: int, offset: int = 0) -> list[int]:
     lo, hi = prereg["seeds"][block]
-    start = lo + 100 * ordinal + offset
+    start = lo + 100 * (prereg["seeds"].get("experiment_offset", 0) + ordinal) + offset
     seeds = list(range(start, start + n))
     if seeds[-1] > hi:
         raise ValueError(f"seed block {block} exhausted")
@@ -118,8 +139,8 @@ def run_plan(spec: ExperimentSpec, prereg: dict, derived: dict, calibrated: dict
     ctrl = spec.controllers or []
     runs = spec.n_seeds * len(spec.landscapes) * len(ctrl)
     weighted = spec.n_seeds * len(spec.landscapes) * n_dyn * sum(
-        B3_RUNTIME_FACTOR if c == "B3_predictive" else 1.0 for c in ctrl)
-    if "B3_predictive" in ctrl:  # fit the frozen risk model on fresh development seeds
+        B3_RUNTIME_FACTOR if c in PREDICTIVE_VARIANTS else 1.0 for c in ctrl)
+    if any(c in PREDICTIVE_VARIANTS for c in ctrl):  # fit frozen risk models on fresh development seeds
         runs += spec.n_seeds * n_pol * len(dev)
         weighted += spec.n_seeds * n_pol * len(dev) * ps["static_generations"]
     missing = [f for f in spec.landscapes if f not in calibrated]
@@ -152,14 +173,27 @@ def _simulate(task: dict) -> tuple[dict, dict]:
     cfg = GAConfig()
     sch = make_shift_schedule(L, cfg.dim, task["n_epochs"], task["period"], task["severity"], task["seed"])
     model = C.LogisticModel.from_dict(task["model"]) if task.get("model") else None
-    ctrl = C.make_controller(task["controller"], model)
+    if task["controller"] in PREDICTIVE_VARIANTS:
+        if model is None:
+            raise ValueError(f"{task['controller']} needs its fitted risk model")
+        ctrl = C.Predictive(model)
+    else:
+        ctrl = C.make_controller(task["controller"])
     tr = run_ga(L, sch, ctrl, cfg, task["n_epochs"] * task["period"], task["seed"])
     return task, {k: list(v) for k, v in tr.__dict__.items()}
 
 
+def _quiet_worker() -> None:
+    # Workers inherit the parent's stdout, which carries the MCP JSON-RPC
+    # stream when the lab runs behind the tool server: never write to it.
+    import sys
+
+    sys.stdout = sys.stderr
+
+
 def _run_tasks(tasks: list[dict]) -> list[tuple[dict, Trace]]:
     out = []
-    with ProcessPoolExecutor(max_workers=n_workers()) as pool:
+    with ProcessPoolExecutor(max_workers=n_workers(), initializer=_quiet_worker) as pool:
         for task, cols in pool.map(_simulate, tasks, chunksize=4):
             out.append((task, Trace(**cols)))
     return out
@@ -174,11 +208,12 @@ def _static_tasks(landscapes, seeds, prereg) -> list[dict]:
     ]
 
 
-def _dynamic_tasks(landscapes, seeds, controllers, prereg, model=None) -> list[dict]:
+def _dynamic_tasks(landscapes, seeds, controllers, prereg, models=None) -> list[dict]:
     cs = prereg["control_study"]
+    models = models or {}
     return [
         {"landscape": f, "seed": s, "controller": c, "n_epochs": cs["epochs"], "period": cs["period_generations"],
-         "severity": cs["severity"], "model": model if c == "B3_predictive" else None}
+         "severity": cs["severity"], "model": models.get(c)}
         for f in landscapes for s in seeds for c in controllers
     ]
 
@@ -237,13 +272,13 @@ def run_experiment(spec: ExperimentSpec, exp_id: str, ordinal: int, root: Path, 
                 "prereg_sha256": prereg["_sha256"], "code": code_fingerprint(), "workers": n_workers()}
     new_cal = {}
     if spec.kind == "prediction":
-        summary = _run_prediction(spec, seeds, prereg, derived, ordinal, out_dir, manifest)
+        summary = _run_prediction(spec, seeds, prereg, derived, ordinal, out_dir, manifest, hypotheses)
     else:
         missing = [f for f in spec.landscapes if f not in calibrated]
         if missing:
             new_cal = calibrate_eps(missing, prereg)
         eps = {**calibrated, **new_cal}
-        summary = _run_control(spec, seeds, prereg, derived, ordinal, out_dir, manifest, eps)
+        summary = _run_control(spec, seeds, prereg, derived, ordinal, out_dir, manifest, eps, hypotheses)
     summary["verdicts"] = verdicts(spec, summary, prereg, hypotheses)
     runtime = time.perf_counter() - t0
     manifest["runtime_sec"] = runtime
@@ -253,7 +288,7 @@ def run_experiment(spec: ExperimentSpec, exp_id: str, ordinal: int, root: Path, 
     return {"summary": summary, "artifacts": str(out_dir), "runtime_sec": runtime, "calibration": new_cal}
 
 
-def _run_prediction(spec, seeds, prereg, derived, ordinal, out_dir, manifest) -> dict:
+def _run_prediction(spec, seeds, prereg, derived, ordinal, out_dir, manifest, hypotheses) -> dict:
     ps = prereg["prediction_study"]
     K, fsets, base = ps["horizon_K"], spec.feature_sets, ps["baseline_features"]
     if derived["stage"] == "development":
@@ -276,7 +311,9 @@ def _run_prediction(spec, seeds, prereg, derived, ordinal, out_dir, manifest) ->
                   for t, tr in res_te]
         folds = [(tr_pts, te_pts)]
         design = "train on development landscapes, test on held-out landscapes"
-    ev = evaluate_feature_sets(folds, fsets, base)
+    pairs = sorted({(hypotheses[h]["feature_set"], hypotheses[h].get("baseline_feature_set") or base)
+                    for h in spec.hypotheses})
+    ev = evaluate_feature_sets(folds, fsets, base, pairs=pairs)
     return {"kind": "prediction", "stage": derived["stage"], "design": design, **ev}
 
 
@@ -288,21 +325,23 @@ def _paired(outcomes, a: str, b: str, key: str):
     return va, vb, [f for f, _ in pairs]
 
 
-def _run_control(spec, seeds, prereg, derived, ordinal, out_dir, manifest, eps) -> dict:
+def _run_control(spec, seeds, prereg, derived, ordinal, out_dir, manifest, eps, hypotheses) -> dict:
     cs, ps = prereg["control_study"], prereg["prediction_study"]
-    model = None
-    model_summary = None
-    if "B3_predictive" in spec.controllers:
+    models, model_summary = {}, {}
+    variants = [c for c in spec.controllers if c in PREDICTIVE_VARIANTS]
+    if variants:
         dev_seeds = allocate_seeds(prereg, "development", ordinal, spec.n_seeds, offset=50)
         manifest["risk_model_seeds"] = dev_seeds
         res_fit = _run_tasks(_static_tasks(derived["dev_landscapes"], dev_seeds, prereg))
-        fs = "fitness+entropy"
-        pts = [run_points(str(i), t["landscape"], tr, [fs], ps["horizon_K"]) for i, (t, tr) in enumerate(res_fit)]
-        m = fit_logistic(*stack(pts, fs), fs)
-        model = m.to_dict()
-        model_summary = {"feature_set": fs, "n_fit_runs": len(pts), "coef": dict(zip(m.names, map(float, m.coef)))}
-        (out_dir / "risk_model.json").write_text(json.dumps(model, indent=2), encoding="utf-8")
-    res = _run_tasks(_dynamic_tasks(spec.landscapes, seeds, spec.controllers, prereg, model))
+        for v in variants:
+            fs = PREDICTIVE_VARIANTS[v]
+            pts = [run_points(str(i), t["landscape"], tr, [fs], ps["horizon_K"]) for i, (t, tr) in enumerate(res_fit)]
+            m = fit_logistic(*stack(pts, fs), fs)
+            models[v] = m.to_dict()
+            model_summary[v] = {"feature_set": fs, "n_fit_runs": len(pts),
+                                "coef": dict(zip(m.names, map(float, m.coef)))}
+        (out_dir / "risk_models.json").write_text(json.dumps(models, indent=2), encoding="utf-8")
+    res = _run_tasks(_dynamic_tasks(spec.landscapes, seeds, spec.controllers, prereg, models))
     _save_traces(out_dir / "traces.npz", res, "eval")
     period = cs["period_generations"]
     outcomes = {}
@@ -315,12 +354,14 @@ def _run_control(spec, seeds, prereg, derived, ordinal, out_dir, manifest, eps) 
 
     per_ctrl = {}
     for c in spec.controllers:
-        os_ = [o for (f, s, cc), o in outcomes.items() if cc == c]
-        n_shift = sum(len(o.recovered) for o in os_)
-        n_rec = sum(sum(o.recovered) for o in os_)
+        units = sorted((f, s) for (f, s, cc) in outcomes if cc == c)
+        os_ = [outcomes[(f, s, c)] for f, s in units]
+        # Shifts within a run are not independent: recovery rate is the mean of
+        # per-run rates with a run-clustered bootstrap stratified by landscape.
         per_ctrl[c] = {
             "rmst_gens_mean": float(np.mean([o.rmst_gens for o in os_])),
-            "recovery_rate": wilson(n_rec, n_shift).to_dict(),
+            "recovery_rate": bootstrap_mean_diff([o.recovery_rate for o in os_],
+                                                 strata=[f for f, _ in units]).to_dict(),
             "cvar90_recovery_gens": cvar([t for o in os_ for t in o.recovery_gens], 0.9),
             "offline_error_norm_mean": float(np.mean([o.offline_error_norm for o in os_])),
             "mean_p_mut": None,
@@ -339,29 +380,37 @@ def _run_control(spec, seeds, prereg, derived, ordinal, out_dir, manifest, eps) 
         rec_b = [r for (f, s, cc), o in sorted(outcomes.items()) if cc == "B0_fixed" for r in o.recovered]
         rec_c = [r for (f, s, cc), o in sorted(outcomes.items()) if cc == c for r in o.recovered]
         rd = rescue_damage(rec_b, rec_c)
+        rc, rb, _ = _paired(outcomes, c, "B0_fixed", "recovery_rate")
         pvals[c] = wilcoxon_p(d)
         vs_b0[c] = {
             "delta_rmst_gens": bootstrap_mean_diff(d, strata=strata).to_dict(),
+            "delta_recovery_rate": bootstrap_mean_diff(rc - rb, strata=strata).to_dict(),
             "hodges_lehmann": hodges_lehmann(d),
             "wilcoxon_p": pvals[c],
             "rescue_damage": rd,
-            "mcnemar_p": mcnemar_exact(rd["rescue"], rd["damage"]),
+            # descriptive only: treats shifts as independent although they are clustered in runs
+            "mcnemar_p_descriptive": mcnemar_exact(rd["rescue"], rd["damage"]),
             "standardised_effect": float(-d.mean() / d.std(ddof=1)) if d.std(ddof=1) > 0 else 0.0,
         }
     for c, rej in holm(pvals).items():
         vs_b0[c]["holm_reject"] = rej
 
-    b3_vs_best = None
-    if "B3_predictive" in spec.controllers:
-        baselines = [c for c in spec.controllers if c != "B3_predictive"]
-        best = min(baselines, key=lambda c: per_ctrl[c]["rmst_gens_mean"])
-        v3, vb, strata = _paired(outcomes, "B3_predictive", best, "rmst_gens")
-        d = v3 - vb
-        b3_vs_best = {"best_baseline": best, "delta_rmst_gens": bootstrap_mean_diff(d, strata=strata).to_dict(),
-                      "standardised_effect": float(-d.mean() / d.std(ddof=1)) if d.std(ddof=1) > 0 else 0.0}
+    contrasts = {}
+    for hid in spec.hypotheses:
+        h = hypotheses[hid]
+        ctrl = h["controller"]
+        comparator = h.get("comparator") or "best_baseline"
+        if comparator == "best_baseline":
+            baselines = [c for c in spec.controllers if c != ctrl and c not in PREDICTIVE_VARIANTS]
+            comparator = min(baselines, key=lambda c: per_ctrl[c]["rmst_gens_mean"])
+        vt, vb, strata = _paired(outcomes, ctrl, comparator, "rmst_gens")
+        d = vt - vb
+        contrasts[hid] = {"controller": ctrl, "comparator": comparator,
+                          "delta_rmst_gens": bootstrap_mean_diff(d, strata=strata).to_dict(),
+                          "standardised_effect": float(-d.mean() / d.std(ddof=1)) if d.std(ddof=1) > 0 else 0.0}
     return {"kind": "control", "stage": derived["stage"], "eps": {f: eps[f] for f in spec.landscapes},
-            "n_seeds": spec.n_seeds, "per_controller": per_ctrl, "vs_B0": vs_b0, "B3_vs_best_baseline": b3_vs_best,
-            "risk_model": model_summary}
+            "n_seeds": spec.n_seeds, "per_controller": per_ctrl, "vs_B0": vs_b0, "contrasts": contrasts,
+            "risk_models": model_summary}
 
 
 # ------------------------------------------------------------------- verdicts
@@ -380,17 +429,18 @@ def verdicts(spec: ExperimentSpec, summary: dict, prereg: dict, hypotheses: dict
     for hid in spec.hypotheses:
         h = hypotheses[hid]
         if spec.kind == "prediction":
-            comp = summary["comparisons"][h["feature_set"]]
+            base = h.get("baseline_feature_set") or prereg["prediction_study"]["baseline_features"]
+            comp = summary["pair_comparisons"][f"{h['feature_set']} - {base}"]
             ci = Interval(**comp["delta_auroc"])
             out[hid] = {"verdict": _verdict(ci, sesoi["prediction_delta_auroc"]), "effect": comp["delta_auroc"],
                         "standardised_effect": comp["standardised_effect"], "n_units": summary["n_test_runs"],
-                        "stage": summary["stage"], "measure": f"delta AUROC ({h['feature_set']} - fitness)"}
+                        "stage": summary["stage"], "measure": f"delta AUROC ({h['feature_set']} - {base})"}
         else:
-            comp = summary["B3_vs_best_baseline"]
+            comp = summary["contrasts"][hid]
             raw = Interval(**comp["delta_rmst_gens"])
             ci = Interval(-raw.estimate, -raw.high, -raw.low)  # orient: positive = faster recovery
             out[hid] = {"verdict": _verdict(ci, sesoi["control_rmst_generations"]), "effect": ci.to_dict(),
                         "standardised_effect": comp["standardised_effect"],
                         "n_units": spec.n_seeds * len(spec.landscapes), "stage": summary["stage"],
-                        "measure": f"RMST reduction vs {comp['best_baseline']} (generations)"}
+                        "measure": f"RMST reduction, {comp['controller']} vs {comp['comparator']} (generations)"}
     return out

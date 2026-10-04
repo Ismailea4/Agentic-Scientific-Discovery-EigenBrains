@@ -66,7 +66,8 @@ def stack(points: list[RunPoints], fs: str) -> tuple[np.ndarray, np.ndarray]:
 
 
 def evaluate_feature_sets(folds: list[tuple[list[RunPoints], list[RunPoints]]], feature_sets: list[str],
-                          baseline: str, n_boot: int = 2000, seed: int = 0) -> dict:
+                          baseline: str, n_boot: int = 2000, seed: int = 0,
+                          pairs: list[tuple[str, str]] | None = None) -> dict:
     """Fit per fold on train runs only; pool held-out scores across folds."""
     if baseline not in feature_sets:
         raise ValueError("baseline feature set must be among those evaluated")
@@ -101,18 +102,22 @@ def evaluate_feature_sets(folds: list[tuple[list[RunPoints], list[RunPoints]]], 
     def ci(arr, est):
         return Interval(float(est), float(np.nanquantile(arr, 0.025)), float(np.nanquantile(arr, 0.975)))
 
-    comparisons = {}
-    for fs in feature_sets:
-        if fs == baseline:
-            continue
-        d = boot[fs] - boot[baseline]
-        est = point[fs] - point[baseline]
+    def compare(a: str, b: str) -> dict:
+        d = boot[a] - boot[b]
+        est = point[a] - point[b]
         sd = float(np.nanstd(d))
-        comparisons[fs] = {
+        return {
             "delta_auroc": ci(d, est).to_dict(),
             # standardised per-run effect, used by the planner to update its power model
             "standardised_effect": float(est / (sd * np.sqrt(len(test)))) if sd > 0 else 0.0,
         }
+
+    comparisons = {fs: compare(fs, baseline) for fs in feature_sets if fs != baseline}
+    pair_comparisons = {}
+    for a, b in pairs or []:
+        if a not in feature_sets or b not in feature_sets:
+            raise ValueError(f"comparison {a} - {b} needs both feature sets evaluated")
+        pair_comparisons[f"{a} - {b}"] = compare(a, b)
     return {
         "n_folds": len(folds),
         "n_train_runs": train_runs,
@@ -123,5 +128,6 @@ def evaluate_feature_sets(folds: list[tuple[list[RunPoints], list[RunPoints]]], 
         "brier": brier,
         "baseline": baseline,
         "comparisons": comparisons,
+        "pair_comparisons": pair_comparisons,
         "models": {fs: [m.to_dict() for m in ms] for fs, ms in models.items()},
     }

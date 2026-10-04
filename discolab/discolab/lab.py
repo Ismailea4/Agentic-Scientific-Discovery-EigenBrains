@@ -10,8 +10,9 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from .experiments import ExperimentSpec, estimate_cost, measure_sec_per_generation, run_experiment, run_plan, \
-    validate_spec
+from .experiments import ExperimentSpec, estimate_cost, is_known_controller, measure_sec_per_generation, \
+    run_experiment, run_plan, validate_spec
+from .features import FEATURE_SETS
 from .ledger import Ledger, LedgerError, public_state
 from .planner import belief_updates, score_candidates
 from .prereg import load_prereg
@@ -37,7 +38,7 @@ def init_lab(root: Path | None = None, actor: str = "operator") -> dict:
     for h in pr["hypotheses"]:
         entry = {k: v for k, v in h.items()}
         entry.setdefault("prior", 0.5)
-        entry["origin"] = "prereg"
+        entry.setdefault("origin", "prereg")
         hyps.append(entry)
     led.append("lab_initialized", {
         "question": " ".join(pr["question"].split()),
@@ -100,12 +101,24 @@ def run_selected_experiment(actor: str, root: Path | None = None) -> dict:
     spec = ExperimentSpec(**cand["spec"])
     derived = validate_spec(spec, pr, state["hypotheses"])
     ordinal = int(eid[1:])
-    out = run_experiment(spec, eid, ordinal, led.root, pr, derived, state["calibration"], state["hypotheses"])
+    try:
+        out = run_experiment(spec, eid, ordinal, led.root, pr, derived, state["calibration"], state["hypotheses"])
+    except Exception as exc:
+        led.append("experiment_failed", {"id": eid, "error": f"{type(exc).__name__}: {exc}"}, actor)
+        raise
     summary = {k: v for k, v in out["summary"].items() if k != "models"}
-    led.append("experiment_completed", {"id": eid, "summary": out["summary"], "artifacts": out["artifacts"],
+    # store artifact locations relative to the lab root so the record is portable
+    artifacts = Path(os.path.relpath(out["artifacts"], led.root)).as_posix()
+    led.append("experiment_completed", {"id": eid, "summary": out["summary"], "artifacts": artifacts,
                                         "runtime_sec": out["runtime_sec"], "calibration": out["calibration"]}, actor)
-    return {"id": eid, "runtime_sec": round(out["runtime_sec"], 2), "artifacts": out["artifacts"],
+    return {"id": eid, "runtime_sec": round(out["runtime_sec"], 2), "artifacts": artifacts,
             "summary": summary}
+
+
+def abort_experiment(exp_id: str, reason: str, actor: str, root: Path | None = None) -> dict:
+    """Release a selected experiment whose run was interrupted (e.g. the process was killed)."""
+    _ledger(root).append("experiment_failed", {"id": exp_id, "error": f"aborted: {reason}", "aborted": True}, actor)
+    return {"aborted": exp_id}
 
 
 def record_analysis(exp_id: str, interpretation: str, threats_to_validity: list[str], actor: str,
@@ -130,10 +143,26 @@ def record_decision(decision: str, rationale: str, next_experiment: str | None, 
 
 
 def register_hypothesis(hid: str, statement: str, h0: str, family: str, feature_set: str | None,
-                        controller: str | None, actor: str, root: Path | None = None) -> dict:
-    if family not in ("prediction", "control"):
+                        controller: str | None, actor: str, root: Path | None = None,
+                        baseline_feature_set: str | None = None, comparator: str | None = None) -> dict:
+    """Register an agent-generated hypothesis; it must be testable by the lab as written."""
+    if family == "prediction":
+        base = baseline_feature_set or load_prereg()["prediction_study"]["baseline_features"]
+        for fs in (feature_set, base):
+            if fs not in FEATURE_SETS:
+                raise ValueError(f"unknown feature set {fs!r}; known: {sorted(FEATURE_SETS)}")
+        if feature_set == base:
+            raise ValueError("feature_set and its comparison baseline must differ")
+        payload = {"feature_set": feature_set, "baseline_feature_set": base}
+    elif family == "control":
+        comp = comparator or "best_baseline"
+        if not is_known_controller(controller or ""):
+            raise ValueError(f"unknown controller {controller!r}")
+        if comp != "best_baseline" and not is_known_controller(comp):
+            raise ValueError(f"unknown comparator {comp!r}")
+        payload = {"controller": controller, "comparator": comp}
+    else:
         raise ValueError("family must be 'prediction' or 'control'")
-    payload = {"id": hid, "statement": statement, "h0": h0, "family": family, "prior": 0.5,
-               "feature_set": feature_set, "controller": controller}
+    payload = {"id": hid, "statement": statement, "h0": h0, "family": family, "prior": 0.5, **payload}
     _ledger(root).append("hypothesis_registered", payload, actor)
     return payload
