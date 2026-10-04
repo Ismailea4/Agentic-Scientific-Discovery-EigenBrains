@@ -6,4 +6,4 @@ args: ["-m", "discolab.mcp_server"]
 env:
   DISCOLAB_HOME: "${DISCOLAB_HOME}"
   DISCOLAB_ACTOR: "critic"
-tools: [get_research_state, get_experiment_result, record_analysis, register_hypothesis]
+tools: [get_research_state, get_experiment_result, analyze_failure_dependence, record_analysis, register_hypothesis]

@@ -128,6 +128,34 @@ def get_experiment_result(experiment_id: str) -> dict:
 
 
 @mcp.tool()
+def analyze_failure_dependence(experiment_id: str) -> dict:
+    """For a completed CONTROL experiment: do controllers fail on the same runs?
+    Uses the EigenBrains econometrics layer (covariance, Jaccard failure similarity,
+    conditional failure, paired run-level bootstrap, complementary-pair selection).
+    Low overlap between two controllers means they are complementary (a combined
+    policy may beat both); high overlap means one adds nothing beyond the other."""
+    from .portfolio import analyze
+
+    s = Ledger(lab.lab_root()).state()
+    cand = s["candidates"].get(experiment_id)
+    if cand is None or cand["spec"]["kind"] != "control" or cand["status"] not in ("completed", "analyzed"):
+        raise ValueError(f"{experiment_id} is not a completed control experiment")
+    path = lab.lab_root() / cand["artifacts"] / "outcomes.jsonl"
+    r = analyze(path, horizon=load_prereg()["control_study"]["period_generations"])
+    keep = ("jaccard_failure_similarity", "p_right_fails_given_left_fails", "correlation")
+    return {
+        "n_runs": r["n_runs"], "mean_run_recovery": {k: round(v, 3) for k, v in r["mean_run_recovery"].items()},
+        "pairs": [{"left": b["left"], "right": b["right"],
+                   **{m: {"estimate": round(b["metrics"][m]["estimate"], 3),
+                          "ci95": [round(b["metrics"][m]["lower"], 3), round(b["metrics"][m]["upper"], 3)]}
+                      for m in keep if b["metrics"][m]["estimate"] is not None}}
+                  for b in r["run_level_bootstrap"]],
+        "complementary_pair": r["complementary_pair"]["pair"],
+        "note": "run-level cases (independent units); a run fails when >= 3 of its 5 shifts are not recovered",
+    }
+
+
+@mcp.tool()
 def record_analysis(experiment_id: str, interpretation: str, threats_to_validity: list[str]) -> dict:
     """Record the critic's interpretation of a completed experiment. This triggers
     the pre-registered Bayesian update of the tested hypotheses."""
