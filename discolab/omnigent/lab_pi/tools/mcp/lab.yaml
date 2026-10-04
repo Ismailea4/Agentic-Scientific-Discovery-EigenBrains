@@ -1,0 +1,11 @@
+# discolab lab tools for the PI. The command resolves inside the session
+# workspace (the discolab directory) with the lab venv first on PATH.
+name: lab
+description: discolab research ledger, experiment selection and execution.
+transport: stdio
+command: python
+args: ["-m", "discolab.mcp_server"]
+env:
+  DISCOLAB_HOME: "${DISCOLAB_HOME}"
+  DISCOLAB_ACTOR: "pi"
+tools: [get_research_state, get_experiment_result, select_experiment, run_experiment, record_decision]

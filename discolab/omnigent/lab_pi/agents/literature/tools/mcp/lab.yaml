@@ -1,0 +1,9 @@
+name: lab
+description: discolab literature tools (OpenAlex search and verified evidence recording).
+transport: stdio
+command: python
+args: ["-m", "discolab.mcp_server"]
+env:
+  DISCOLAB_HOME: "${DISCOLAB_HOME}"
+  DISCOLAB_ACTOR: "literature"
+tools: [get_research_state, search_literature, record_evidence]
