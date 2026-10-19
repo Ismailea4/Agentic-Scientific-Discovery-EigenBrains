@@ -8,26 +8,26 @@ This document describes the theory implemented by the optimizer and benchmark la
 
 For model or architecture `i` on case `k`, define bounded quality and loss:
 
-\[
+$$
 Q_{ik} \in [0,1], \qquad L_{ik}=1-Q_{ik}.
-\]
+$$
 
 The empirical expected loss and variance are:
 
-\[
+$$
 \hat\mu_i=\frac{1}{n}\sum_{k=1}^{n}L_{ik},
 \qquad
 \widehat{\operatorname{Var}}(L_i)
 =\frac{1}{n}\sum_{k=1}^{n}(L_{ik}-\hat\mu_i)^2.
-\]
+$$
 
 Paired evaluation matters: every compared model sees the same case. This makes the cross-model covariance estimable:
 
-\[
+$$
 \hat\Sigma_{ij}
 =\widehat{\operatorname{Cov}}(L_i,L_j)
 =\frac{1}{n}\sum_{k=1}^{n}(L_{ik}-\hat\mu_i)(L_{jk}-\hat\mu_j).
-\]
+$$
 
 High positive covariance means models tend to fail on the same cases. Lower covariance can make a weaker individual model valuable as a second opinion.
 
@@ -35,21 +35,21 @@ High positive covariance means models tend to fail on the same cases. Lower cova
 
 The benchmark explicitly separates three quantities:
 
-\[
+$$
 P(\text{provider success}),
-\]
+$$
 
-\[
+$$
 P(\text{correct}\mid\text{provider success}),
-\]
+$$
 
 and
 
-\[
+$$
 P(\text{operationally correct})
 =P(\text{provider success})
 P(\text{correct}\mid\text{provider success}).
-\]
+$$
 
 This prevents a transport failure from being mislabeled as weak reasoning and prevents a strong-but-unavailable model from looking deployable. Latency conditional on success and end-to-end severe-failure probability are reported separately for the same reason.
 
@@ -57,28 +57,28 @@ This prevents a transport failure from being mislabeled as weak reasoning and pr
 
 Let `w_i` be the share of workload routed to candidate `i`, with:
 
-\[
+$$
 w_i\ge 0, \qquad \sum_i w_i=1.
-\]
+$$
 
 The portfolio's expected loss and variance are:
 
-\[
+$$
 E[L_w]=w^T\mu,
 \qquad
 \operatorname{Var}(L_w)=w^T\Sigma w.
-\]
+$$
 
 This is analogous to mean-variance portfolio construction, but the assets are decision policies and the adverse return is task loss. The analogy is not literal finance: routing weights represent workload allocation, and model errors are bounded, paired empirical observations rather than market returns.
 
 The implemented workload objective is a constrained utility:
 
-\[
+$$
 U(A)=E[Q_A]
 -\lambda R_A
 -\eta\frac{C_A}{B}
 -\rho\frac{T_A}{T_{\max}},
-\]
+$$
 
 where:
 
@@ -94,10 +94,10 @@ Normalization makes cost and latency dimensionless before combining them with qu
 
 Candidate feasibility is a separate stage:
 
-\[
+$$
 \mathcal F
 =\{A:\text{capabilities, privacy, availability, and task scope are satisfied}\}.
-\]
+$$
 
 Only `A ∈ F` can enter Pareto or utility selection. This matters because an attractive expected score must never compensate for a denied capability or unacceptable privacy class.
 
@@ -105,9 +105,9 @@ Only `A ∈ F` can enter Pareto or utility selection. This matters because an at
 
 Architecture `a` empirically dominates `b` when it has:
 
-\[
+$$
 Q_a\ge Q_b,\quad C_a\le C_b,\quad T_a\le T_b,\quad R_a\le R_b,
-\]
+$$
 
 with at least one strict inequality. Non-dominated candidates form the empirical frontier.
 
@@ -127,10 +127,10 @@ Average quality can hide rare catastrophic failures. With loss `L`, the laborato
 
 For loss quantile `VaR_α(L)`, CVaR is:
 
-\[
+$$
 \operatorname{CVaR}_\alpha(L)
 =E[L\mid L\ge \operatorname{VaR}_\alpha(L)].
-\]
+$$
 
 At small `n`, tail estimates are deliberately labeled unstable. In the 12-case held-out slice, the worst observed outcome dominates the tail statistic, so the result is useful as a warning but not a precise tail estimate.
 
@@ -138,35 +138,35 @@ At small `n`, tail estimates are deliberately labeled unstable. In the 12-case h
 
 For a first model `F`, verifier `V`, and gate event `G`, selective execution has expected cost and latency:
 
-\[
+$$
 E[C_{sel}]=E[C_F]+P(G)E[C_V\mid G],
-\]
+$$
 
-\[
+$$
 E[T_{sel}]=E[T_F]+P(G)E[T_V\mid G].
-\]
+$$
 
 Always-both pays both terms on every case. Selective escalation saves resources whenever `P(G)<1`, but this alone does not establish quality value.
 
 For binary correctness, the quality change relative to the first model decomposes into rescue and damage:
 
-\[
+$$
 \Delta Q
 =P(F\text{ wrong},\,A\text{ correct})
 -P(F\text{ correct},\,A\text{ wrong}).
-\]
+$$
 
 The two conditional quantities reported by the system are:
 
-\[
+$$
 P(\text{rescue}\mid G,F\text{ wrong})
-\]
+$$
 
 and
 
-\[
+$$
 P(\text{damage}\mid G,F\text{ correct}).
-\]
+$$
 
 An escalation policy is attractive only when the expected rescue benefit, reduction in severe failures, or reduction in tail risk justifies its incremental cost and latency.
 
@@ -204,10 +204,10 @@ The laboratory uses methods matched to the estimand:
 
 The shrinkage estimator retains empirical variances and contracts off-diagonal covariance toward independence:
 
-\[
+$$
 \tilde\Sigma
 =(1-\gamma)\hat\Sigma+\gamma\operatorname{diag}(\hat\Sigma),
-\]
+$$
 
 with frozen intensity `γ=0.25` in the baseline.
 
@@ -215,11 +215,11 @@ with frozen intensity `γ=0.25` in the baseline.
 
 Generic evidence becomes a weak prior rather than a permanent conclusion. For empirical event rate `p̂` and bounded prior strength `κ`, the stored Beta prior is:
 
-\[
+$$
 \alpha_0=1+\kappa\hat p,
 \qquad
 \beta_0=1+\kappa(1-\hat p).
-\]
+$$
 
 Architecture Baseline v0 uses `κ=4`, capped at `5`, separately for:
 
@@ -230,11 +230,11 @@ Architecture Baseline v0 uses `κ=4`, capped at `5`, separately for:
 
 New task data updates the sufficient statistics:
 
-\[
+$$
 \alpha=\alpha_0+s,
 \qquad
 \beta=\beta_0+f.
-\]
+$$
 
 Because the prior is weak, a modest amount of task-specific evidence can overturn it.
 
@@ -245,11 +245,11 @@ than a model call. Let `N_1 < N_2 < N_3` be nested sample sizes and let `G_k`
 mean that the preregistered verdict remains inconclusive at look `k`. Expected
 work under selective escalation is:
 
-\[
+$$
 E[C_{seq}]
 =C(N_1)+P(G_1)\{C(N_2)-C(N_1)\}
 +P(G_1,G_2)\{C(N_3)-C(N_2)\}.
-\]
+$$
 
 A full-size design always pays `C(N_3)`. As with model verification, saved work
 is scientifically valuable only when the sequential policy preserves the
