@@ -175,10 +175,10 @@ Never use the shorter word “result” when the distinction could be lost.
 A portfolio of models is valuable when errors are not perfectly correlated.
 Mean quality alone cannot choose an architecture. At minimum estimate:
 
-\[
+$$
 E[L_i],\quad Var(L_i),\quad Cov(L_i,L_j),\quad Corr(L_i,L_j),
 \quad P(j\text{ fails}\mid i\text{ fails}).
-\]
+$$
 
 An additional solver or verifier earns its place through marginal value:
 rescues, avoided severe failures, calibration, or uncertainty reduction net of
@@ -189,9 +189,9 @@ weaker but complementary model.
 
 The platform may optimize an architecture or experiment using:
 
-\[
+$$
 U = E[Q] - \lambda R - \eta C/B - \rho T/T_{max}.
-\]
+$$
 
 Utility weights express preferences; they do not create evidence. Always show
 the underlying quality, risk, cost, latency, availability, and uncertainty
