@@ -17,7 +17,7 @@ The empirical expected loss and variance are:
 $$
 \hat\mu_i=\frac{1}{n}\sum_{k=1}^{n}L_{ik},
 \qquad
-\widehat{\operatorname{Var}}(L_i)
+\widehat{\mathrm{Var}}(L_i)
 =\frac{1}{n}\sum_{k=1}^{n}(L_{ik}-\hat\mu_i)^2.
 $$
 
@@ -25,7 +25,7 @@ Paired evaluation matters: every compared model sees the same case. This makes t
 
 $$
 \hat\Sigma_{ij}
-=\widehat{\operatorname{Cov}}(L_i,L_j)
+=\widehat{\mathrm{Cov}}(L_i,L_j)
 =\frac{1}{n}\sum_{k=1}^{n}(L_{ik}-\hat\mu_i)(L_{jk}-\hat\mu_j).
 $$
 
@@ -66,7 +66,7 @@ The portfolio's expected loss and variance are:
 $$
 E[L_w]=w^T\mu,
 \qquad
-\operatorname{Var}(L_w)=w^T\Sigma w.
+\mathrm{Var}(L_w)=w^T\Sigma w.
 $$
 
 This is analogous to mean-variance portfolio construction, but the assets are decision policies and the adverse return is task loss. The analogy is not literal finance: routing weights represent workload allocation, and model errors are bounded, paired empirical observations rather than market returns.
@@ -128,8 +128,8 @@ Average quality can hide rare catastrophic failures. With loss `L`, the laborato
 For loss quantile `VaR_α(L)`, CVaR is:
 
 $$
-\operatorname{CVaR}_\alpha(L)
-=E[L\mid L\ge \operatorname{VaR}_\alpha(L)].
+\mathrm{CVaR}_\alpha(L)
+=E[L\mid L\ge \mathrm{VaR}_\alpha(L)].
 $$
 
 At small `n`, tail estimates are deliberately labeled unstable. In the 12-case held-out slice, the worst observed outcome dominates the tail statistic, so the result is useful as a warning but not a precise tail estimate.
@@ -206,7 +206,7 @@ The shrinkage estimator retains empirical variances and contracts off-diagonal c
 
 $$
 \tilde\Sigma
-=(1-\gamma)\hat\Sigma+\gamma\operatorname{diag}(\hat\Sigma),
+=(1-\gamma)\hat\Sigma+\gamma\mathrm{diag}(\hat\Sigma),
 $$
 
 with frozen intensity `γ=0.25` in the baseline.
@@ -286,7 +286,7 @@ The econometric lesson is material: GPT-OSS and Qwen were strong conditional on 
 
 ### Failure dependence
 
-| Pair | Error correlation, 95% bootstrap | Failure Jaccard | `P(right succeeds | left fails)` |
+| Pair | Error correlation, 95% bootstrap | Failure Jaccard | <code>P(right succeeds &#124; left fails)</code> |
 |---|---:|---:|---:|
 | GPT-OSS ↔ Qwen | `0.742 [0.577, 0.886]` | `0.735` | `0.138 [0.031, 0.278]` |
 | GPT-OSS ↔ DeepSeek | `0.489 [0.336, 0.634]` | `0.345` | `0.655 [0.467, 0.824]` |
